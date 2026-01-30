@@ -1,6 +1,7 @@
 #include "main.h"
 #include "stm32f0xx_hal.h"
 #include "hal_gpio.h"
+#include "assert.h"
 
 void SystemClock_Config(void);
 
@@ -12,8 +13,11 @@ int main(void) {
      the GPIOC peripheral.  You'll be redoing this code
      with hardware register access. */
 
-    // __HAL_RCC_GPIOC_CLK_ENABLE() // previous way of setting the clock
+    //__HAL_RCC_GPIOC_CLK_ENABLE() // previous way of setting the clock
     HAL_RCC_GPIOC_CLK_Enable(); //Enable the GPIOC clock in the RCC
+    // check that the GPIOC clock bit is enabled
+    int Ahbenr = RCC->AHBENR;
+    assert((Ahbenr && (1 << 19)) == 1);
 
   // Set up a configuration struct to pass to the initialize function
   GPIO_InitTypeDef initStr = {GPIO_PIN_8 | GPIO_PIN_9,
@@ -22,6 +26,9 @@ int main(void) {
                               GPIO_NOPULL};
 
   HAL_GPIO_Init(GPIOC, &initStr); // Initializes pins PC8 & PC9
+  // My_HAL_GPIO_Init(GPIOC, &initStr); // Initializes pins PC8 & PC9
+
+
   HAL_GPIO_WritePin(GPIOC, GPIO_PIN_8, GPIO_PIN_SET); // Start PC* high
   while (1) {
     HAL_Delay(200); //Delay 200ms
