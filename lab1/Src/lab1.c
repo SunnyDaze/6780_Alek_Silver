@@ -1,7 +1,6 @@
 #include "main.h"
 #include "stm32f0xx_hal.h"
-
-#include <stm32f0xx_hal.h>
+#include "hal_gpio.h"
 
 void SystemClock_Config(void);
 
@@ -13,7 +12,8 @@ int main(void) {
      the GPIOC peripheral.  You'll be redoing this code
      with hardware register access. */
 
-  __HAL_RCC_GPIOC_CLK_ENABLE(); //Enable the GPIO clock in the RCC
+    // __HAL_RCC_GPIOC_CLK_ENABLE() // previous way of setting the clock
+    HAL_RCC_GPIOC_CLK_Enable(); //Enable the GPIOC clock in the RCC
 
   // Set up a configuration struct to pass to the initialize function
   GPIO_InitTypeDef initStr = {GPIO_PIN_8 | GPIO_PIN_9,
@@ -30,24 +30,13 @@ int main(void) {
   }
 }
 
-// // Original code
-// /**
-//   * @brief  The application entry point.
-//   * @retval int
-//   */
-// int main(void)
-// {
-//   /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
-//   HAL_Init();
-//   /* Configure the system clock */
-//   SystemClock_Config();
+void HAL_RCC_GPIOC_CLK_Enable(void){
+  
+  // Enable the GPIOC Clock
+  SET_BIT(RCC->AHBENR, RCC_AHBENR_GPIOCEN);
 
-//   while (1)
-//   {
- 
-//   }
-//   return -1;
-// }
+}
+
 
 /**
   * @brief System Clock Configuration
