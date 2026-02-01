@@ -17,8 +17,7 @@ int main(void) {
     HAL_RCC_GPIOC_CLK_Enable(); //Enable the GPIOC clock in the RCC
 
     // check that the GPIOC clock bit is actually enabled
-    int testvalue = RCC->AHBENR;
-    assert((testvalue && (1 << 19)) == 1);
+    assert((RCC->AHBENR && (1 << 19)) == 1);
 
   // Set up a configuration struct to pass to the initialize function
   GPIO_InitTypeDef initStr = {GPIO_PIN_8 | GPIO_PIN_9, // Pin   - GPIOx_MODER
@@ -28,18 +27,13 @@ int main(void) {
 
   HAL_GPIO_Init(GPIOC, &initStr); // Initializes pins PC8 & PC9
   // My_HAL_GPIO_Init(GPIOC, &initStr); // Initializes pins PC8 & PC9
-  testvalue = GPIOC->MODER  & 0x000F0000;
-  assert(testvalue == 0x00050000);  // check that GPIO 8 and 9 are set to output
-  testvalue = GPIOC->OTYPER & 0x00000300;
-  assert(testvalue == 0x00000000);  // check that GPIO 8 and 9 are push-pull
-  testvalue = GPIOC->OSPEEDR & 0x00050000;
-  assert(testvalue == 0x00000000);  // check that GPIO 8 and 9 are speed medium
-  testvalue = GPIOC->PUPDR & 0x000F0000;
-  assert(testvalue == 0x00000000);  // check that GPIO 8 and 9 are no pull-up
-
-
+  assert((GPIOC->MODER  & 0x000F0000) == 0x00050000);  // check that GPIO 8 and 9 are set to output
+  assert((GPIOC->OTYPER & 0x00000300) == 0x00000000);  // check that GPIO 8 and 9 are push-pull
+  assert((GPIOC->OSPEEDR & 0x00050000) == 0x00000000); // check that GPIO 8 and 9 are speed medium
+  assert((GPIOC->PUPDR & 0x000F0000) == 0x00000000);   // check that GPIO 8 and 9 are no pull-up
 
   HAL_GPIO_WritePin(GPIOC, GPIO_PIN_8, GPIO_PIN_SET); // Start PC* high
+  assert((GPIOC->ODR & GPIO_PIN_8) == GPIO_PIN_8);    // verify that Pin 8 gets sets
   while (1) {
     HAL_Delay(200); //Delay 200ms
     // Toggle the output of both PC8 and PC9
