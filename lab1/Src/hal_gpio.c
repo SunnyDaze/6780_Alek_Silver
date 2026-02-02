@@ -9,19 +9,27 @@ void My_HAL_GPIO_Init(GPIO_TypeDef  *GPIOx, GPIO_InitTypeDef *GPIO_Init)
     assert_param(IS_GPIO_PIN(GPIO_Init->Pin));
     assert_param(IS_GPIO_MODE(GPIO_Init->Mode));
 
-    // Configure GPIOC Pins 6, 7, 8, 9 as Output pins, which is 01
+    // Configure the mode for GPIOC Pins 6, 7, 8, 9 as Output pins, which is 01
     // Pin 6 = Red LED    (MODER pin13,12), Pin 7 = Blue LED (MODER pin15,14)
     // Pin 8 = Orange LED (MODER pin17,16), Pin 9 = Green LED (MODER pin19,18)
     GPIOC->MODER |= (1 << 12) | ( 1 << 14) | ( 1 << 16) | ( 1 << 18);
     GPIOC->MODER &= ~((1 << 13) | (1 << 15) | (1 << 17) | (1 << 19));
 
-    // Configure GPIOC Pins 6, 7, 8, 0 as
+    // Configure GPIOC Pins 6, 7, 8, 0 as output type as push-pull (set to 0)
+    GPIOC->OTYPER &= ~((1 << 6) | (1 << 7) | (1 << 8) | (1 << 9));
 
-    // Configure GPIOC 
+    // Configure GPIOC Pins 6, 7, 8, 9 to low speed (x0)
+    GPIOC->OSPEEDR &= ~((1 << 12) | ( 1 << 14) | ( 1 << 16) | ( 1 << 18));
 
-    // Configure GPIOC 
+    // Configure GPIOC Pins 6, 7, 8, 9 to no pull-up/down (00)
+    GPIOC->PUPDR &= ~((1 << 12) | (1 << 13) | (1 << 14) | (1 << 15) |
+                      (1 << 16) | (1 << 17) | (1 << 18) | (1 << 19));
 
-
+    // Configure PA0 (User Button) as input, low speed, pull-down
+    GPIOA->MODER &= ~((1 << 0) | (1 << 1));  // clear bits 1 and 0
+    GPIOA->OSPEEDR &= ~((1 << 0) | (1 << 1));  // clear bits 1 and 0
+    GPIOA->PUPDR |= ((1 << 13) | (1 << 15) | (1 << 17) | (1 << 19));
+    GPIOA->PUPDR &= ~((1 << 12) | (1 << 14) | (1 << 16) | (1 << 18));
 
 }
 

@@ -25,12 +25,12 @@ int main(void) {
                               GPIO_SPEED_FREQ_LOW,     // Speed - GPIOx_OSPEEDR
                               GPIO_NOPULL};            // Pull  - GPIOx_PUPDR
 
-  HAL_GPIO_Init(GPIOC, &initStr); // Initializes pins PC8 & PC9
-  // My_HAL_GPIO_Init(GPIOC, &initStr); // Initializes pins PC8 & PC9
-  assert((GPIOC->MODER  & 0x000F0000) == 0x00050000);  // check that GPIO 8 and 9 are set to output
-  assert((GPIOC->OTYPER & 0x00000300) == 0x00000000);  // check that GPIO 8 and 9 are push-pull
+  // HAL_GPIO_Init(GPIOC, &initStr); // Initializes pins PC8 & PC9
+  My_HAL_GPIO_Init(GPIOC, &initStr); // Initializes pins PC8 & PC9
+  assert((GPIOC->MODER   & 0x000F0000) == 0x00050000); // check that GPIO 8 and 9 are set to output
+  assert((GPIOC->OTYPER  & 0x00000300) == 0x00000000); // check that GPIO 8 and 9 are push-pull
   assert((GPIOC->OSPEEDR & 0x00050000) == 0x00000000); // check that GPIO 8 and 9 are speed medium
-  assert((GPIOC->PUPDR & 0x000F0000) == 0x00000000);   // check that GPIO 8 and 9 are no pull-up
+  assert((GPIOC->PUPDR   & 0x000F0000) == 0x00000000); // check that GPIO 8 and 9 are no pull-up
 
   HAL_GPIO_WritePin(GPIOC, GPIO_PIN_8, GPIO_PIN_SET); // Start PC* high
   assert((GPIOC->ODR & GPIO_PIN_8) == GPIO_PIN_8);    // verify that Pin 8 gets sets
