@@ -26,10 +26,14 @@ void My_HAL_GPIO_Init(GPIO_TypeDef  *GPIOx, GPIO_InitTypeDef *GPIO_Init)
                       (1 << 16) | (1 << 17) | (1 << 18) | (1 << 19));
 
     // Configure PA0 (User Button) as input, low speed, pull-down
-    GPIOA->MODER &= ~((1 << 0) | (1 << 1));  // clear bits 1 and 0
+    // Pin0 of Port A is connected to the User Push-Button
+    GPIOA->MODER   &= ~((1 << 0) | (1 << 1));  // clear bits 1 and 0
     GPIOA->OSPEEDR &= ~((1 << 0) | (1 << 1));  // clear bits 1 and 0
-    GPIOA->PUPDR |= ((1 << 13) | (1 << 15) | (1 << 17) | (1 << 19));
-    GPIOA->PUPDR &= ~((1 << 12) | (1 << 14) | (1 << 16) | (1 << 18));
+    // Set the Pull-Up/Down Register bits to Pull-Down (10)
+    // Set 1s
+    GPIOA->PUPDR   |=  ((1 << 13) | (1 << 15) | (1 << 17) | (1 << 19));
+    // Set 0s
+    GPIOA->PUPDR   &= ~((1 << 12) | (1 << 14) | (1 << 16) | (1 << 18));
 
 }
 
