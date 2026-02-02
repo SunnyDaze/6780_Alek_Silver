@@ -13,7 +13,7 @@ int main(void) {
      the GPIOC peripheral.  You'll be redoing this code
      with hardware register access. */
 
-    //__HAL_RCC_GPIOC_CLK_ENABLE() // previous way of setting the clock
+    // HAL_RCC_GPIOC_CLK_ENABLE(); // previous way of setting the clock
     HAL_RCC_GPIOC_CLK_Enable(); //Enable the GPIOC clock in the RCC
 
     // check that the GPIOC clock bit is actually enabled
@@ -32,6 +32,49 @@ int main(void) {
   assert((GPIOC->OSPEEDR & 0x00050000) == 0x00000000); // check that GPIO 8 and 9 are speed medium
   assert((GPIOC->PUPDR   & 0x000F0000) == 0x00000000); // check that GPIO 8 and 9 are no pull-up
 
+  // Loop continuously sensing Push-Button presses,and toggle turning on LEDs
+  uint32_t debouncer = 0;
+  int down = 0;
+  uint16_t led_pin = GPIO_PIN_6;
+  while(1) {
+    debouncer = (debouncer << 1); // Always shift every loop iteration
+                                  // If no button push, all 1s shift out
+                                  //   leaving a register of zeros
+
+    int pushbutton = My_HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_0);
+
+    if ((pushbutton) == 1){   // If input signal is set high
+      debouncer |= 0x01;  // Set lowest bit of bit-vector      
+    }
+
+    if (debouncer == 0xFFFFFFFF){
+      // This code triggers repeatedly when button is high
+      if (down == 0){
+        My_HAL_GPIO_WritePin(GPIOC, led_pin, GPIO_PIN_RESET);
+        if (led_pin == GPIO_PIN_9){
+          led_pin = GPIO_PIN_6;
+        }
+        else{
+          led_pin = (led_pin << 1);  // shift to next LED
+        }
+        My_HAL_GPIO_WritePin(GPIOC, led_pin, GPIO_PIN_SET);
+        down = 1;
+        debouncer |= 0x00;
+      }
+    }
+    if (debouncer == 0x00000000){
+      // This code trigger repeatedly when button is steady low
+      down = 0;  // button no longer down, ready to detect next down push
+    }
+    if (debouncer == 0x7FFFFFFFF){
+      // This code triggers only once when transitioning to steady state
+    }
+    // When button is bouncing the bit vector value is random since bits are set when
+    // the button is high and not when it bounces low
+  }
+
+  // Loop LEDs flashing back and forth
+  // This code is never reached when the push-button code above is in forever loop
   // HAL_GPIO_WritePin(GPIOC, GPIO_PIN_8, GPIO_PIN_SET); // Start PC* high
   My_HAL_GPIO_WritePin(GPIOC, GPIO_PIN_6, GPIO_PIN_SET); // Start PC* high
   assert((GPIOC->ODR & GPIO_PIN_6) == GPIO_PIN_6);    // verify that Pin 8 gets sets
@@ -47,10 +90,10 @@ int main(void) {
 void HAL_RCC_GPIOC_CLK_Enable(void){
   
   // Enable the GPIOA Clock (for User Pushbutton)
-  SET_BIT(RCC->AHBENR, RCC_AHBENR_GPIOAEN);
+  SET_BIT(RCC->AHBENR, (1 << 17)); // RCC_AHBENR_GPIOAEN);
 
   // Enable the GPIOC Clock (for LEDs)
-  SET_BIT(RCC->AHBENR, RCC_AHBENR_GPIOCEN);
+  SET_BIT(RCC->AHBENR, (1 << 19)); // RCC_AHBENR_GPIOCEN);
 
 }
 
