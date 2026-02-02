@@ -46,7 +46,10 @@ int main(void) {
 
 void HAL_RCC_GPIOC_CLK_Enable(void){
   
-  // Enable the GPIOC Clock
+  // Enable the GPIOA Clock (for User Pushbutton)
+  SET_BIT(RCC->AHBENR, RCC_AHBENR_GPIOAEN);
+
+  // Enable the GPIOC Clock (for LEDs)
   SET_BIT(RCC->AHBENR, RCC_AHBENR_GPIOCEN);
 
 }
