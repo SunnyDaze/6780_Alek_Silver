@@ -33,13 +33,13 @@ int main(void) {
   assert((GPIOC->PUPDR   & 0x000F0000) == 0x00000000); // check that GPIO 8 and 9 are no pull-up
 
   // HAL_GPIO_WritePin(GPIOC, GPIO_PIN_8, GPIO_PIN_SET); // Start PC* high
-  My_HAL_GPIO_WritePin(GPIOC, GPIO_PIN_8, GPIO_PIN_SET); // Start PC* high
-  assert((GPIOC->ODR & GPIO_PIN_8) == GPIO_PIN_8);    // verify that Pin 8 gets sets
+  My_HAL_GPIO_WritePin(GPIOC, GPIO_PIN_6, GPIO_PIN_SET); // Start PC* high
+  assert((GPIOC->ODR & GPIO_PIN_6) == GPIO_PIN_6);    // verify that Pin 8 gets sets
   while (1) {
     HAL_Delay(200); //Delay 200ms
     // Toggle the output of both PC8 and PC9
     // HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_8 | GPIO_PIN_9);
-    My_HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_8 | GPIO_PIN_9);
+    My_HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_6 | GPIO_PIN_7);
     
   }
 }
