@@ -1,5 +1,6 @@
 #include "main.h"
 #include "stm32f0xx_hal.h"
+#include "hal_gpio.h"
 
 void SystemClock_Config(void);
 
@@ -25,11 +26,29 @@ int main(void)
                               GPIO_NOPULL,             // Pull  - GPIOx_PUPDR
                               GPIO_SPEED_FREQ_LOW};    // Speed - GPIOx_OSPEEDR
 
+  // Configure LED GPIOC Output pins for LED use
+  My_HAL_GPIO_Init(GPIOC, &initStr); // Initializes pins PC8 & PC9
+
+  // Tiurn on Green LED (GPIOC Pin 9)
+  My_HAL_GPIO_WritePin(GPIOC, GPIO_PIN_9, GPIO_PIN_SET);
+
+  My_HAL_GPIO_WritePin(GPIOC, GPIO_PIN_6, GPIO_PIN_SET); // Start PC* high
+  // assert((GPIOC->ODR & GPIO_PIN_6) == GPIO_PIN_6);    // verify that Pin 8 gets sets
+
+  uint16_t led_count = 0x00u;
+
   while (1)
   {
 
- 
+    // Loop Blue LED (GPIOC Pin 6) to flash on and off
+    // This indicates that the forever main loop is running
+    HAL_Delay(600); //Delay 200ms
+    // Toggle the output of both PC8 and PC9
+    // HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_8 | GPIO_PIN_9);
+    My_HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_6);
+
   }
+ 
   return -1;
 }
 
