@@ -22,8 +22,9 @@ int main(void) {
   // Set up a configuration struct to pass to the initialize function
   GPIO_InitTypeDef initStr = {GPIO_PIN_8 | GPIO_PIN_9, // Pin   - GPIOx_MODER
                               GPIO_MODE_OUTPUT_PP,     // Mode  - GPIOx_OTYPER
-                              GPIO_SPEED_FREQ_LOW,     // Speed - GPIOx_OSPEEDR
-                              GPIO_NOPULL};            // Pull  - GPIOx_PUPDR
+                              // swapped the following two lines. (example code had them in the wrong order)
+                              GPIO_NOPULL,             // Pull  - GPIOx_PUPDR
+                              GPIO_SPEED_FREQ_LOW};    // Speed - GPIOx_OSPEEDR
 
   // HAL_GPIO_Init(GPIOC, &initStr); // Initializes pins PC8 & PC9
   My_HAL_GPIO_Init(GPIOC, &initStr); // Initializes pins PC8 & PC9
@@ -32,7 +33,7 @@ int main(void) {
   assert((GPIOC->OSPEEDR & 0x00050000) == 0x00000000); // check that GPIO 8 and 9 are speed medium
   assert((GPIOC->PUPDR   & 0x000F0000) == 0x00000000); // check that GPIO 8 and 9 are no pull-up
 
-  // Loop continuously sensing Push-Button presses,and toggle turning on LEDs
+  // Loop continuously sensing Push-Button presses, and toggle turning on LEDs
   uint32_t debouncer = 0;
   int down = 0;
   uint16_t led_pin = GPIO_PIN_6;
@@ -59,7 +60,6 @@ int main(void) {
         }
         My_HAL_GPIO_WritePin(GPIOC, led_pin, GPIO_PIN_SET);
         down = 1;
-        debouncer |= 0x00;
       }
     }
     if (debouncer == 0x00000000){
