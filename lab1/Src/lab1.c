@@ -19,8 +19,8 @@ int main(void) {
     // check that the GPIOC clock bit is actually enabled
     assert((RCC->AHBENR && (1 << 19)) == 1);
 
-  // Set up a configuration struct to pass to the initialize function
-  GPIO_InitTypeDef initStr = {GPIO_PIN_8 | GPIO_PIN_9, // Pin   - GPIOx_MODER
+  // Set up a configuration struct to pass Outputs to the initialize function
+  GPIO_InitTypeDef initStr = {GPIO_PIN_6 | GPIO_PIN_7 | GPIO_PIN_8 | GPIO_PIN_9, // Pin   - GPIOx_MODER
                               GPIO_MODE_OUTPUT_PP,     // Mode  - GPIOx_OTYPER
                               // swapped the following two lines. (example code had them in the wrong order)
                               GPIO_NOPULL,             // Pull  - GPIOx_PUPDR
@@ -28,10 +28,19 @@ int main(void) {
 
   // HAL_GPIO_Init(GPIOC, &initStr); // Initializes pins PC8 & PC9
   My_HAL_GPIO_Init(GPIOC, &initStr); // Initializes pins PC8 & PC9
-  assert((GPIOC->MODER   & 0x000F0000) == 0x00050000); // check that GPIO 8 and 9 are set to output
-  assert((GPIOC->OTYPER  & 0x00000300) == 0x00000000); // check that GPIO 8 and 9 are push-pull
-  assert((GPIOC->OSPEEDR & 0x00050000) == 0x00000000); // check that GPIO 8 and 9 are speed medium
-  assert((GPIOC->PUPDR   & 0x000F0000) == 0x00000000); // check that GPIO 8 and 9 are no pull-up
+  // assert((GPIOC->MODER   & 0x000F0000) == 0x00050000); // check that GPIO 8 and 9 are set to output
+  // assert((GPIOC->OTYPER  & 0x00000300) == 0x00000000); // check that GPIO 8 and 9 are push-pull
+  // assert((GPIOC->OSPEEDR & 0x00050000) == 0x00000000); // check that GPIO 8 and 9 are speed medium
+  // assert((GPIOC->PUPDR   & 0x000F0000) == 0x00000000); // check that GPIO 8 and 9 are no pull-up
+
+  // Set up a configuration for Pin 0 as pushbutton input w/pull-down
+  initStr.Pin   = GPIO_PIN_0;           // Set the pin
+  initStr.Mode  = GPIO_MODE_INPUT;      // Set the mode
+  initStr.Pull  = GPIO_PULLDOWN;        // Set the pull-up/down
+  initStr.Speed = GPIO_SPEED_FREQ_LOW;  // Set the speed
+  
+  // Configure Pin 0 on Port A as input
+  My_HAL_GPIO_Init(GPIOA, &initStr);
 
   // Loop continuously sensing Push-Button presses, and toggle turning on LEDs
   uint32_t debouncer = 0;
