@@ -14,11 +14,46 @@ int main(void)
   /* Configure the system clock */
   SystemClock_Config();
 
+  // Enable relevant clocks (Clock on port C for LEDs and Port A for push-button_)
+  HAL_RCC_GPIOC_CLK_Enable(); //Enable the GPIOC clock in the RCC
+  HAL_RCC_GPIOA_CLK_Enable(); //Enable the GPIOC clock in the RCC
+
+
+  // Set up pins connected to LEDs as Ouput w/out Pull-Up/Pull-Down
+  GPIO_InitTypeDef initStr = {GPIO_PIN_6 | GPIO_PIN_7 | GPIO_PIN_8 | GPIO_PIN_9, // Pin   - GPIOx_MODER
+                              GPIO_MODE_OUTPUT_PP,     // Mode  - GPIOx_OTYPER
+                              GPIO_NOPULL,             // Pull  - GPIOx_PUPDR
+                              GPIO_SPEED_FREQ_LOW};    // Speed - GPIOx_OSPEEDR
+
   while (1)
   {
+
+  // Loop LEDs flashing back and forth
+  My_HAL_GPIO_WritePin(GPIOC, GPIO_PIN_6, GPIO_PIN_SET); // Start PC* high
+  assert((GPIOC->ODR & GPIO_PIN_6) == GPIO_PIN_6);    // verify that Pin 8 gets sets
+  while (1) {
+    HAL_Delay(200); //Delay 200ms
+    // Toggle the output of both PC8 and PC9
+    // HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_8 | GPIO_PIN_9);
+    My_HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_6); 
  
   }
   return -1;
+}
+
+void HAL_RCC_GPIOC_CLK_Enable(void){
+  
+  // Enable the GPIOA Clock (for User Pushbutton)
+  SET_BIT(RCC->AHBENR, (1 << 17)); // RCC_AHBENR_GPIOAEN);
+
+}
+
+
+void HAL_RCC_GPIOA_CLK_Enable(void){
+
+  // Enable the GPIOC Clock (for LEDs)
+  SET_BIT(RCC->AHBENR, (1 << 19)); // RCC_AHBENR_GPIOCEN);
+
 }
 
 /**
