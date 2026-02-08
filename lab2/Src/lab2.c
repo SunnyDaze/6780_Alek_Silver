@@ -2,6 +2,8 @@
 #include "stm32f0xx_hal.h"
 #include "hal_gpio.h"
 
+volatile uint16_t blue_led_count = 0x00u;
+
 void SystemClock_Config(void);
 
 /**
@@ -29,13 +31,17 @@ int main(void)
   // Configure LED GPIOC Output pins for LED use
   My_HAL_GPIO_Init(GPIOC, &initStr); // Initializes pins PC8 & PC9
 
-  // Tiurn on Green LED (GPIOC Pin 9)
+  // Turn on Green LED (GPIOC Pin 9)
   My_HAL_GPIO_WritePin(GPIOC, GPIO_PIN_9, GPIO_PIN_SET);
 
+  // Turn on Red LED (GPIOC Pin 6) which wll be toggle in forever loop
   My_HAL_GPIO_WritePin(GPIOC, GPIO_PIN_6, GPIO_PIN_SET); // Start PC* high
   // assert((GPIOC->ODR & GPIO_PIN_6) == GPIO_PIN_6);    // verify that Pin 8 gets sets
 
-  uint16_t led_count = 0x00u;
+  // Turn on Blue LED (GPIOC Pin 7) which will be toggle in SysTick
+  My_HAL_GPIO_WritePin(GPIOC, GPIO_PIN_7, GPIO_PIN_SET); // Start PC* high
+
+  // Reset Blue LED toggle counter to 0
 
   while (1)
   {

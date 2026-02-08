@@ -2,6 +2,8 @@
 #ifndef __STM32F0xx_IT_H
 #define __STM32F0xx_IT_H
 
+extern volatile uint16_t blue_led_count;
+
 #ifdef __cplusplus
 extern "C" {
 #endif

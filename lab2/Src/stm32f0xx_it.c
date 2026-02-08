@@ -45,7 +45,19 @@ void PendSV_Handler(void)
   */
 void SysTick_Handler(void)
 {
+ 
   HAL_IncTick();
+
+  if (blue_led_count < 200){
+    blue_led_count += 1;
+  }
+  else{
+    // Toggle the Blue LED (Pin 7)
+    My_HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_7);
+    // Reset Counter
+    blue_led_count = 0;
+  }
+
 }
 
 /******************************************************************************/
