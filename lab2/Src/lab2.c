@@ -4,6 +4,7 @@
 #include "assert.h"
 
 volatile uint16_t blue_led_count = 0x00u;
+volatile uint32_t toggle_led_count = 0x00;
 unsigned long temp;
 
 void SystemClock_Config(void);
@@ -69,22 +70,22 @@ int main(void)
   assert(temp == 0x00000000);
 
   // Enable the IRQ in the NVIC, and set it's priority
-  NVIC_EnableIRQ(EXTI0_1_IRQn);
-  NVIC_SetPriority(EXTI0_1_IRQn,1);
-
-
+  HAL_NVIC_EnableIRQ(EXTI0_1_IRQn);
+  HAL_NVIC_SetPriority(EXTI0_1_IRQn,1,2);
 
   // temp  = *((volatile unsigned long*)(0x40010008));  // SYSCFG_EXTICR1 address
   // temp = temp & ~(0xF << EXTI_LINE_0*4);        // clear all 4 bits
   // temp = temp |  (0x8 << EXTI_LINE_0*4);        // Set lower 3 bits to zeros
   // *((volatile unsigned long*)(0x40010400)) = temp;
 
+  HAL_NVIC_SetPriority(SysTick_IRQn,0,1);
+
   while (1)
   {
 
     // Loop Blue LED (GPIOC Pin 6) to flash on and off
     // This indicates that the forever main loop is running
-    HAL_Delay(600); //Delay 200ms
+    HAL_Delay(600); //Delay 600ms
     // Toggle the output of both PC8 and PC9
     // HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_8 | GPIO_PIN_9);
     My_HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_6);
@@ -116,10 +117,21 @@ void EXTI0_1_IRQHandler(void){
 
   // Toggle Green LED (GPIOC Pin 9)
   My_HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_9);
-
   // Toggle Orange LED(GPIO 8)
   My_HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_8);
-  
+
+  // create a delay.  Don't use HAL_delay, it will break everything.
+  toggle_led_count = 0u;
+  while (toggle_led_count <= 500000u){
+    toggle_led_count += 1;
+  }
+
+  toggle_led_count = 0;
+
+  // Toggle Green LED (GPIOC Pin 9)
+  My_HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_9);
+  // Toggle Orange LED(GPIO 8)
+  My_HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_8);
   
   // Clear pending
   // EXTI base = 0x4001 0400
