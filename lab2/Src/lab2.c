@@ -68,6 +68,10 @@ int main(void)
   temp &= 0x00000007;
   assert(temp == 0x00000000);
 
+  // Enable the IRQ in the NVIC, and set it's priority
+  NVIC_EnableIRQ(EXTI0_1_IRQn);
+  NVIC_SetPriority(EXTI0_1_IRQn,1);
+
 
 
   // temp  = *((volatile unsigned long*)(0x40010008));  // SYSCFG_EXTICR1 address
@@ -107,6 +111,26 @@ void HAL_RCC_SYSCFG_CLK_ENABLE(void){
   // Enable the SYSCFG Clock (for interrupts)
   SET_BIT(RCC->APB2ENR, (1 << 0)); // RCC_APB2ENR);
 };
+
+void EXTI0_1_IRQHandler(void){
+
+  // Toggle Green LED (GPIOC Pin 9)
+  My_HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_9);
+
+  // Toggle Orange LED(GPIO 8)
+  My_HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_8);
+  
+  
+  // Clear pending
+  // EXTI base = 0x4001 0400
+  // EXTI_PR Address offset: 0x14
+  temp = *((volatile unsigned long*)(0x40010414));   // EXTI base address = EXTI_IMR address
+  temp = temp |  (1 << 0);    // Set bit
+  *((volatile unsigned long*)(0x40010414)) = temp;
+
+  // HAL_NVIC_ClearPendingIRQ(EXTI0_1_IRQn);
+
+}
 
 
 /**
