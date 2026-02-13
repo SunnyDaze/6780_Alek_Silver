@@ -1,6 +1,27 @@
 #include <stdint.h>
 #include <stm32f0xx_hal.h>
 #include <stm32f0xx_hal_gpio.h>
+#include <stdbool.h>
+
+void My_HAL_EXTI_Init(uint32_t intrptNum, bool enState){
+
+  unsigned long temp;
+
+  // Turn on the Interrupt
+  temp = *((volatile unsigned long*)(0x40010400));   // EXTI base address = EXTI_IMR address
+  temp = temp & ~(1 << intrptNum);                   // clear bit
+  temp = temp |  (enState << intrptNum);             // Set bit
+  *((volatile unsigned long*)(0x40010400)) = temp;
+
+  // Set to Interrupt to rising edge
+  temp = *((volatile unsigned long*)(0x40010408));   // EXTI_RTSR address
+  temp = temp & ~(1 << intrptNum);                   // clear bit
+  temp = temp |  (enState << intrptNum);             // Set bit
+  *((volatile unsigned long*)(0x40010408)) = temp;
+
+  // NVIC->IP[EXTI_LINE_0] = 0x01;
+}
+
 
 void My_HAL_GPIO_Init(GPIO_TypeDef  *GPIOx, GPIO_InitTypeDef *GPIO_Init)
 {
