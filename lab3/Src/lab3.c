@@ -1,5 +1,9 @@
 #include "main.h"
 #include "stm32f0xx_hal.h"
+#include "hal_gpio.h"
+#include "assert.h"
+#include "lab3timers.h"
+#include "core_cm0.h"
 
 void SystemClock_Config(void);
 
@@ -14,11 +18,79 @@ int main(void)
   /* Configure the system clock */
   SystemClock_Config();
 
+  // Enable relevant clocks (Clock on port C for LEDs and Port A for push-button_)
+  // HAL_RCC_GPIOA_CLK_Enable(); // Enable the GPIOC clock in the RCC for the Blue Push-button
+  HAL_RCC_GPIOC_CLK_Enable(); // Enable the GPIOC clock in the RCC for the LEDs
+
+
+  // Configure LED GPIOC Output pins for LED use
+  // Set up pins connected to LEDs as Ouput w/out Pull-Up/Pull-Down
+  GPIO_InitTypeDef initStr = {GPIO_PIN_6 | GPIO_PIN_7 | \
+                              GPIO_PIN_8 | GPIO_PIN_9, // Pins  - GPIOx_MODER
+                              GPIO_MODE_OUTPUT_PP,     // Mode  - GPIOx_OTYPER
+                              GPIO_NOPULL,             // Pull  - GPIOx_PUPDR
+                              GPIO_SPEED_FREQ_LOW};    // Speed - GPIOx_OSPEEDR
+  My_HAL_GPIO_Init(GPIOC, &initStr); // Initializes pins PC8 & PC9
+
+  // Turn on Green LED (GPIOC Pin 9)
+  My_HAL_GPIO_WritePin(GPIOC, GPIO_PIN_9, GPIO_PIN_RESET);
+
+  // Turn on Orange LED (GPIOC Pin 8)
+  My_HAL_GPIO_WritePin(GPIOC, GPIO_PIN_8, GPIO_PIN_SET);
+
+  // Initialize the timer2
+  TIM2_Init();
+  
   while (1)
   {
  
   }
   return -1;
+}
+
+
+void TIM2_IRQHandler(void){
+
+  // Toggle Green LED (GPIOC Pin 9)
+  My_HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_9);
+  // Toggle Orange LED(GPIO 8)
+  My_HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_8);
+
+  // // create a delay.  Don't use HAL_delay, it will break everything.
+  // toggle_led_count = 0u;
+  // while (toggle_led_count <= 500000u){
+  //   toggle_led_count += 1;
+  // }
+
+  // toggle_led_count = 0;
+
+  // // Toggle Green LED (GPIOC Pin 9)
+  // My_HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_9);
+  // // Toggle Orange LED(GPIO 8)
+  // My_HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_8);
+  
+  // Clear pending
+  // EXTI base = 0x4001 0400
+  // EXTI_PR Address offset: 0x14
+  // temp = *((volatile unsigned long*)(0x40010414));   // EXTI base address = EXTI_IMR address
+  // temp = temp |  (1 << 0);    // Set bit
+  // *((volatile unsigned long*)(0x40010414)) = temp;
+
+  TIM2->SR &= ~TIM_SR_UIF;
+  NVIC_ClearPendingIRQ(TIM2_IRQn);
+
+}
+
+
+void HAL_RCC_GPIOA_CLK_Enable(void){
+  // Enable the GPIOA Clock (for User Pushbutton)
+  SET_BIT(RCC->AHBENR, (1 << 17)); // RCC_AHBENR_GPIOAEN);
+}
+
+
+void HAL_RCC_GPIOC_CLK_Enable(void){
+  // Enable the GPIOC Clock (for LEDs)
+  SET_BIT(RCC->AHBENR, (1 << 19)); // RCC_AHBENR_GPIOCEN);
 }
 
 /**
