@@ -48,33 +48,39 @@ int main(void)
   initStr.Speed = GPIO_SPEED_FREQ_LOW;     // Speed - GPIOx_OSPEEDR
   HAL_GPIO_Init(GPIOC, &initStr); // Initializes pins PC8 & PC9
 
+  // Initialize Timer 3 for PWM output to PC6 and PC7
   TIM3_Init();
 
-  Connect_LEDs_to_TIM3();
+  // Connect red and blue LED to TIM3 PWM outputs
+  // First is red LED time, and 2nd is blue LED time in us
+  Connect_LEDs_to_TIM3(750, 50);
 
-  // // Enable/start the timer 3
+  // Enable/start the timer 3
   TIM3->CR1 |= TIM_CR1_CEN;
-  // TIM3->CR2 |= TIM_CR1_CEN;
   
+  // values for forever loop that pulses the blue and red LEDs
+  int time = 500;
+  int delay = 1;
+
   while (1)
   {
- 
+    for (int i = 1; i <= time; i++){
+      TIM3->CCR1 = i+(1250-time);    // PC6 red LED time off - TIM3->ARR max counter value
+      TIM3->CCR2 = i;    // PC7 blue LED time on - TIM3->ARR max counter value
+
+      HAL_Delay(delay);
+    }
+    HAL_Delay(400);
+    for (int i = time; i >= 1; i--){
+      TIM3->CCR1 = i+(1250-time);    // PC6 red LED time off - TIM3->ARR max counter value
+      TIM3->CCR2 = i;    // PC7 blue LED time on - TIM3->ARR max counter value
+
+      HAL_Delay(delay);
+    }
+    HAL_Delay(400);
   }
-  return -1;
-}
-
-
-void Connect_LEDs_to_TIM3(void){
-
-  // Set AF0 on PC6 for connection to TIM3
-  // Clear all 3 bits 000b = ~0x7
-  GPIOC->AFR[0] &= ~(0x7 << GPIO_AFRL_AFRL6_Pos);
-  // Set AF0 on PC7 for connection to TIM3
-  GPIOC->AFR[0] &= ~(0x7 << GPIO_AFRL_AFRL7_Pos); 
-
 
 }
-
 
 
 void TIM2_IRQHandler(void){

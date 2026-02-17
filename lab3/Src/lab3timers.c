@@ -79,14 +79,25 @@ void TIM3_Init(void){
   TIM3->CCER |= TIM_CCER_CC1E;  // Enable red LED
   TIM3->CCER |= TIM_CCER_CC2E;  // Enable blue LED
 
+}
+
+void Connect_LEDs_to_TIM3(uint16_t red_on_time, uint16_t blue_on_time){
+
   // Set CCRx for both channels 1 and 2 to 20% of Timer3 ARR value
   // 20% of 1250 is 250
   // 40% = 500
   // 60% = 750
-  // 50% = 526
+  // 50% = 625
   // 80% = 1000
   // 100% = 1250
-  TIM3->CCR1 |= 250u;  // red LED time off - 65535 max counter value
-  TIM3->CCR2 |= 250u;  // bue LED time on  - 65535 max counter value
+  TIM3->CCR1 |= red_on_time;    // PC6 red LED time off - TIM3->ARR max counter value
+  TIM3->CCR2 |= blue_on_time;   // PC7 blue LED time on - TIM3->ARR max counter value
+
+  // Set AF0 on PC6 for connection to TIM3
+  // Clear all 3 bits 000b = ~0x7
+  GPIOC->AFR[0] &= ~(0x7 << GPIO_AFRL_AFRL6_Pos);
+  // Set AF0 on PC7 for connection to TIM3
+  GPIOC->AFR[0] &= ~(0x7 << GPIO_AFRL_AFRL7_Pos); 
+
 
 }
