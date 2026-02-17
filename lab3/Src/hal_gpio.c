@@ -69,7 +69,7 @@ void My_HAL_GPIO_Init(GPIO_TypeDef  *GPIOx, GPIO_InitTypeDef *GPIO_Init)
         GPIOx->PUPDR = temp;
       }
 
-      // Set the Port Speed if pin is Ouput or Analog Mode
+      // Set the Port Speed if pin is Ouput or Alternate Function Mode
       if(((GPIO_Init->Mode & GPIO_MODE) == MODE_AF) | ((GPIO_Init->Mode & GPIO_MODE) == MODE_OUTPUT)){
         temp = GPIOx->OSPEEDR;
         temp &= ~(GPIO_OSPEEDER_OSPEEDR0 << (position * 2u));

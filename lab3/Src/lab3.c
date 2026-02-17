@@ -1,4 +1,4 @@
-#include "main.h"
+// #include "main.h"
 #include "stm32f0xx_hal.h"
 #include "hal_gpio.h"
 #include "assert.h"
@@ -25,8 +25,7 @@ int main(void)
 
   // Configure LED GPIOC Output pins for LED use
   // Set up pins connected to LEDs as Ouput w/out Pull-Up/Pull-Down
-  GPIO_InitTypeDef initStr = {GPIO_PIN_6 | GPIO_PIN_7 | \
-                              GPIO_PIN_8 | GPIO_PIN_9, // Pins  - GPIOx_MODER
+  GPIO_InitTypeDef initStr = {GPIO_PIN_8 | GPIO_PIN_9, // Pins  - GPIOx_MODER
                               GPIO_MODE_OUTPUT_PP,     // Mode  - GPIOx_OTYPER
                               GPIO_NOPULL,             // Pull  - GPIOx_PUPDR
                               GPIO_SPEED_FREQ_LOW};    // Speed - GPIOx_OSPEEDR
@@ -40,6 +39,22 @@ int main(void)
 
   // Initialize the timer2
   TIM2_Init();
+
+  // Configure LED GPIOC Output pins for LED use
+  // Set up pins connected to LEDs as Ouput w/out Pull-Up/Pull-Down
+  initStr.Pin   = GPIO_PIN_6 | GPIO_PIN_7; // Pins  - GPIOx_MODER
+  initStr.Mode  = GPIO_MODE_AF_PP;         // Mode  - GPIOx_OTYPER
+  initStr.Pull  = GPIO_NOPULL;             // Pull  - GPIOx_PUPDR
+  initStr.Speed = GPIO_SPEED_FREQ_LOW;     // Speed - GPIOx_OSPEEDR
+  HAL_GPIO_Init(GPIOC, &initStr); // Initializes pins PC8 & PC9
+
+  TIM3_Init();
+
+  Connect_LEDs_to_TIM3();
+
+  // // Enable/start the timer 3
+  TIM3->CR1 |= TIM_CR1_CEN;
+  // TIM3->CR2 |= TIM_CR1_CEN;
   
   while (1)
   {
@@ -49,6 +64,19 @@ int main(void)
 }
 
 
+void Connect_LEDs_to_TIM3(void){
+
+  // Set AF0 on PC6 for connection to TIM3
+  // Clear all 3 bits 000b = ~0x7
+  GPIOC->AFR[0] &= ~(0x7 << GPIO_AFRL_AFRL6_Pos);
+  // Set AF0 on PC7 for connection to TIM3
+  GPIOC->AFR[0] &= ~(0x7 << GPIO_AFRL_AFRL7_Pos); 
+
+
+}
+
+
+
 void TIM2_IRQHandler(void){
 
   // Toggle Green LED (GPIOC Pin 9)
@@ -56,27 +84,11 @@ void TIM2_IRQHandler(void){
   // Toggle Orange LED(GPIO 8)
   My_HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_8);
 
-  // // create a delay.  Don't use HAL_delay, it will break everything.
-  // toggle_led_count = 0u;
-  // while (toggle_led_count <= 500000u){
-  //   toggle_led_count += 1;
-  // }
-
-  // toggle_led_count = 0;
-
-  // // Toggle Green LED (GPIOC Pin 9)
-  // My_HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_9);
-  // // Toggle Orange LED(GPIO 8)
-  // My_HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_8);
-  
-  // Clear pending
-  // EXTI base = 0x4001 0400
-  // EXTI_PR Address offset: 0x14
-  // temp = *((volatile unsigned long*)(0x40010414));   // EXTI base address = EXTI_IMR address
-  // temp = temp |  (1 << 0);    // Set bit
-  // *((volatile unsigned long*)(0x40010414)) = temp;
-
+  // Clear the Update Interrupt Flag for Timer 2
   TIM2->SR &= ~TIM_SR_UIF;
+  // Clear the Timer 2 Pendong Interrupt Request
+  // Note: Clearing the Update Interrupt Flag seems to 
+  // also clear the NVIC Pending IRQ
   NVIC_ClearPendingIRQ(TIM2_IRQn);
 
 }
