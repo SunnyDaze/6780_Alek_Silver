@@ -53,13 +53,13 @@ int main(void)
 
   // Connect red and blue LED to TIM3 PWM outputs
   // First is red LED time, and 2nd is blue LED time in us
-  Connect_LEDs_to_TIM3(750, 50);
+  Connect_LEDs_to_TIM3(250, 250);
 
   // Enable/start the timer 3
   TIM3->CR1 |= TIM_CR1_CEN;
   
   // values for forever loop that pulses the blue and red LEDs
-  int time = 500;
+  int time = 1000;
   int delay = 1;
 
   while (1)
