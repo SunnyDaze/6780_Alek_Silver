@@ -1,7 +1,10 @@
 #include "main.h"
 #include "stm32f0xx_hal.h"
+// #include "stm32f030x6.h"
+// #include "stm32f030xc.h"
 
 void SystemClock_Config(void);
+void SendChar(uint16_t send_char);
 
 /**
   * @brief  The application entry point.
@@ -14,12 +17,105 @@ int main(void)
   /* Configure the system clock */
   SystemClock_Config();
 
+  /***********************************************
+     Initialize GPIOC clock and
+     GPIOC Pins connected to the LEDs.
+  ************************************************/
+
+  // Turn on GPIOC Peripheral clock
+  RCC->AHBENR |= RCC_AHBENR_GPIOCEN;
+
+  // Configure LED GPIOC Output pins for LED use
+  GPIO_InitTypeDef initStr = {GPIO_PIN_6 | GPIO_PIN_7 |
+                              GPIO_PIN_8 | GPIO_PIN_9, // Pin   - GPIOx_MODER
+                              GPIO_MODE_OUTPUT_PP,     // Mode  - GPIOx_OTYPER
+                              GPIO_NOPULL,             // Pull  - GPIOx_PUPDR
+                              GPIO_SPEED_FREQ_LOW};    // Speed - GPIOx_OSPEEDR
+  
+  // Initializes pins PC8 & PC9
+  HAL_GPIO_Init(GPIOC, &initStr);
+
+  // Turn on all LEDs
+  HAL_GPIO_WritePin(GPIOC, GPIO_PIN_6, GPIO_PIN_SET);
+  HAL_GPIO_WritePin(GPIOC, GPIO_PIN_7, GPIO_PIN_SET);
+  HAL_GPIO_WritePin(GPIOC, GPIO_PIN_8, GPIO_PIN_SET);
+  HAL_GPIO_WritePin(GPIOC, GPIO_PIN_9, GPIO_PIN_SET);
+
+  /***********************************************
+     Initialize GPIOC pin 4 and 5 to be
+     set up as alternate functions
+     connected to TX/RX of USART3
+  ************************************************/
+
+  // SEt GPIOC Pins 4 and 5 into alternate function mode
+   initStr.Pin = GPIO_PIN_4 | GPIO_PIN_5;  // Pins  - GPIOx_MODER
+  initStr.Mode = GPIO_MODE_AF_PP;          // Mode  - GPIOx_OTYPER
+  initStr.Pull = GPIO_NOPULL;              // Pull  - GPIOx_PUPDR
+  initStr.Speed = GPIO_SPEED_FREQ_LOW;     // Speed - GPIOx_OSPEEDR
+  // Initializes pins PC4 & PC5
+  HAL_GPIO_Init(GPIOC, &initStr);
+
+  // Set PortC_Pin4 and PortC_Pin5 to Alternate Function 1 (AF1)
+  // which connects them to the USART3 RX/TX
+  GPIOC->AFR[0] |= (0x01 << GPIO_AFRL_AFRL4_Pos);
+  GPIOC->AFR[0] |= (0x01 << GPIO_AFRL_AFRL5_Pos);
+
+  // Turn on USART3 Peripheral Clock in RCC_APB1ENR
+  RCC->APB1ENR |= RCC_APB1ENR_USART3EN;
+  // SET_BIT(RCC->AHB1ENR, (1 << 17));
+
+  // Set the USART3 Baud rate to 115200 Baud
+  uint32_t BAUD_RATE = 115200;
+  uint32_t SYS_CLK = HAL_RCC_GetHCLKFreq();  // Should be 8000000 (8MHz)
+  USART3->BRR = SYS_CLK / BAUD_RATE;
+
+  // Turn on USART3 - USART Enable | Transmit Enable | Receive Enable
+  USART3->CR1 |= USART_CR1_UE | USART_CR1_TE | USART_CR1_RE;
+
+  // // Set up an IRQ handler for USART3
+  HAL_NVIC_EnableIRQ(USART3_4_IRQn);
+  HAL_NVIC_SetPriority(USART3_4_IRQn,1,2);
+
+  // Send the ascii code for the letter "R"
+  uint16_t sendchar = 82;
+  SendChar(sendchar);
+  
   while (1)
   {
+
+    SendChar(sendchar);
+
+    HAL_Delay(400);
+
+    HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_6);
  
   }
-  return -1;
+  // return -1;
 }
+
+
+void SendChar(uint16_t send_char){
+
+   USART3->TDR = send_char;
+ 
+}
+
+
+void USART3_4_IRQHandler(void)
+{
+  
+  if (USART3->ISR & USART_ISR_RXNE) {
+      uint8_t received = USART3->TDR; // Read data
+      // Process received byte (e.g., store in buffer)
+  }
+  if (USART3->ISR & USART_ISR_TXE) {
+      // TXE flag is set when data register is empty
+      // You can now write new data to DR
+      // Example: USART3->DR = next_byte;
+  }
+} 
+
+
 
 /**
   * @brief System Clock Configuration
