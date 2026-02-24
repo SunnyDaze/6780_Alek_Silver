@@ -4,7 +4,8 @@
 // #include "stm32f030xc.h"
 
 void SystemClock_Config(void);
-void SendChar(uint16_t send_char);
+void SendChar(char send_char);
+void SendString(char str[]);
 
 /**
   * @brief  The application entry point.
@@ -41,14 +42,16 @@ int main(void)
   HAL_GPIO_WritePin(GPIOC, GPIO_PIN_8, GPIO_PIN_SET);
   HAL_GPIO_WritePin(GPIOC, GPIO_PIN_9, GPIO_PIN_SET);
 
+  
+  
   /***********************************************
      Initialize GPIOC pin 4 and 5 to be
      set up as alternate functions
      connected to TX/RX of USART3
   ************************************************/
 
-  // SEt GPIOC Pins 4 and 5 into alternate function mode
-   initStr.Pin = GPIO_PIN_4 | GPIO_PIN_5;  // Pins  - GPIOx_MODER
+  // Set GPIOC Pins 4 and 5 into alternate function mode
+  initStr.Pin = GPIO_PIN_4 | GPIO_PIN_5;  // Pins  - GPIOx_MODER
   initStr.Mode = GPIO_MODE_AF_PP;          // Mode  - GPIOx_OTYPER
   initStr.Pull = GPIO_NOPULL;              // Pull  - GPIOx_PUPDR
   initStr.Speed = GPIO_SPEED_FREQ_LOW;     // Speed - GPIOx_OSPEEDR
@@ -77,15 +80,22 @@ int main(void)
   HAL_NVIC_SetPriority(USART3_4_IRQn,1,2);
 
   // Send the ascii code for the letter "R"
-  uint16_t sendchar = 82;
-  SendChar(sendchar);
+  char character = 'X'; //83;
+  // SendChar(sendchar);
+
+  char string[] = "\r\n\nThat is not an option.\r\n\nSelect: r = red \
+                                               \r\n        o = orange \
+                                               \r\n        g = green \
+                                               \r\n        b = blue\r\n\n\0";
+
+  SendString(string);
   
   while (1)
   {
 
-    SendChar(sendchar);
+    SendChar(character);
 
-    HAL_Delay(400);
+    HAL_Delay(1000);
 
     HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_6);
  
@@ -93,27 +103,40 @@ int main(void)
   // return -1;
 }
 
+void SendString(char str[]){
 
-void SendChar(uint16_t send_char){
+  while (*str != '\0') {
+    while (USART3->ISR & USART_ISR_TXE){
+      // Send character and increment pointer
+      SendChar(*str++);
+    }
+  }
 
-   USART3->TDR = send_char;
+}
+
+
+void SendChar(char send_char){
+
+  if (USART3->ISR & USART_ISR_TXE){
+    USART3->TDR = send_char;
+  }
  
 }
 
 
-void USART3_4_IRQHandler(void)
-{
-  
-  if (USART3->ISR & USART_ISR_RXNE) {
+void USART3_4_IRQHandler(void){
+
+  if (USART3->ISR & USART_ISR_RXNE){
       uint8_t received = USART3->TDR; // Read data
       // Process received byte (e.g., store in buffer)
   }
-  if (USART3->ISR & USART_ISR_TXE) {
+  if (USART3->ISR & USART_ISR_TXE){
       // TXE flag is set when data register is empty
       // You can now write new data to DR
       // Example: USART3->DR = next_byte;
   }
-} 
+
+}
 
 
 
