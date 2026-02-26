@@ -2,12 +2,16 @@
 #include "stm32f0xx_hal.h"
 #include "hal_gpio.c"
 #include "stdio.h"
+#include "stdbool.h"
 // #include "stm32f030x6.h"
 // #include "stm32f030xc.h"
 
 void SystemClock_Config(void);
 void SendChar(char send_char);
 void SendString(char str[]);
+
+uint8_t volatile received = NULL;
+bool volatile newdata = false;  // 1 if new data
 
 /**
   * @brief  The application entry point.
@@ -77,15 +81,17 @@ int main(void)
   // Turn on USART3 - USART Enable | Transmit Enable | Receive Enable
   USART3->CR1 |= USART_CR1_UE | USART_CR1_TE | USART_CR1_RE;
 
-  // // Set up an IRQ handler for USART3
-  HAL_NVIC_EnableIRQ(USART3_4_IRQn);
-  HAL_NVIC_SetPriority(USART3_4_IRQn,1,2);
+  // Set up an IRQ handler for USART3
+  USART3->CR1 |= USART_CR1_RXNEIE;          // Enable the USART3 interrupt
+  HAL_NVIC_EnableIRQ(USART3_4_IRQn);        // Turn on the IRQ in the NVIC
+  HAL_NVIC_SetPriority(USART3_4_IRQn,1,2);  // Set the Interrupt's priority
 
   // Send the ascii code for the letter "R"
   char character = 'X';
  
   // Messages
   char clearterminal[] = "\e[H\e[2J";
+  char clearline[] = "\eU";
   char wrongkeystr[] = "\r\n\nThat is not an option.";
   char selectoption[] = "\r\n\nSelect: r = red \
                            \r\n        o = orange \
@@ -96,7 +102,8 @@ int main(void)
   SendString(clearterminal);
   SendString(selectoption);
 
-  char key = 'x';
+  char key  = 'x';
+  char key2 = 'x';
   
   while (1)
   {
@@ -107,11 +114,20 @@ int main(void)
     // HAL_Delay(1000);
     // My_HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_6);
 
-    if (USART3->ISR & USART_ISR_RXNE){
+    // if (USART3->ISR & USART_ISR_RXNE){
+    // key = USART3->RDR; // Read data
+    
+    if (newdata == true){
+      key = received;
+      newdata = false;
+    // }
 
-      key = USART3->RDR; // Read data
-      // key = getchar();
+    // if (newdata == true){
+    //   key2 = received;
+    //   newdata = false;
+
       SendChar(key);
+      // SendChar(key2);
  
       switch (key) {
         case 'r':
@@ -135,6 +151,7 @@ int main(void)
           SendString(wrongkeystr);
           SendString(selectoption);
       }
+
     }
 
   }
@@ -167,17 +184,17 @@ void SendChar(char send_char){
 void USART3_4_IRQHandler(void){
 
   if (USART3->ISR & USART_ISR_RXNE){
-      uint8_t received = USART3->RDR; // Read data
+      received = USART3->RDR; // Read data
+      newdata = true;
       // Process received byte (e.g., store in buffer)
   }
-  if (USART3->ISR & USART_ISR_TXE){
-      // TXE flag is set when data register is empty
-      // You can now write new data to DR
-      // Example: USART3->DR = next_byte;
-  }
+  // if (USART3->ISR & USART_ISR_TXE){
+  //     // TXE flag is set when data register is empty
+  //     // You can now write new data to DR
+  //     // Example: USART3->DR = next_byte;
+  // }
 
 }
-
 
 
 /**
