@@ -1,5 +1,7 @@
 #include "main.h"
 #include "stm32f0xx_hal.h"
+#include "hal_gpio.c"
+#include "stdio.h"
 // #include "stm32f030x6.h"
 // #include "stm32f030xc.h"
 
@@ -34,13 +36,13 @@ int main(void)
                               GPIO_SPEED_FREQ_LOW};    // Speed - GPIOx_OSPEEDR
   
   // Initializes pins PC8 & PC9
-  HAL_GPIO_Init(GPIOC, &initStr);
+  My_HAL_GPIO_Init(GPIOC, &initStr);
 
   // Turn on all LEDs
-  HAL_GPIO_WritePin(GPIOC, GPIO_PIN_6, GPIO_PIN_SET);
-  HAL_GPIO_WritePin(GPIOC, GPIO_PIN_7, GPIO_PIN_SET);
-  HAL_GPIO_WritePin(GPIOC, GPIO_PIN_8, GPIO_PIN_SET);
-  HAL_GPIO_WritePin(GPIOC, GPIO_PIN_9, GPIO_PIN_SET);
+  My_HAL_GPIO_WritePin(GPIOC, GPIO_PIN_6, GPIO_PIN_SET);
+  My_HAL_GPIO_WritePin(GPIOC, GPIO_PIN_7, GPIO_PIN_SET);
+  My_HAL_GPIO_WritePin(GPIOC, GPIO_PIN_8, GPIO_PIN_SET);
+  My_HAL_GPIO_WritePin(GPIOC, GPIO_PIN_9, GPIO_PIN_SET);
 
   
   
@@ -56,7 +58,7 @@ int main(void)
   initStr.Pull = GPIO_NOPULL;              // Pull  - GPIOx_PUPDR
   initStr.Speed = GPIO_SPEED_FREQ_LOW;     // Speed - GPIOx_OSPEEDR
   // Initializes pins PC4 & PC5
-  HAL_GPIO_Init(GPIOC, &initStr);
+  My_HAL_GPIO_Init(GPIOC, &initStr);
 
   // Set PortC_Pin4 and PortC_Pin5 to Alternate Function 1 (AF1)
   // which connects them to the USART3 RX/TX
@@ -80,32 +82,70 @@ int main(void)
   HAL_NVIC_SetPriority(USART3_4_IRQn,1,2);
 
   // Send the ascii code for the letter "R"
-  char character = 'X'; //83;
-  // SendChar(sendchar);
+  char character = 'X';
+ 
+  // Messages
+  char clearterminal[] = "\e[H\e[2J";
+  char wrongkeystr[] = "\r\n\nThat is not an option.";
+  char selectoption[] = "\r\n\nSelect: r = red \
+                           \r\n        o = orange \
+                           \r\n        g = green \
+                           \r\n        b = blue\r\n\n\0";
+  
+  // // code for previous section that sends string
+  SendString(clearterminal);
+  SendString(selectoption);
 
-  char string[] = "\r\n\nThat is not an option.\r\n\nSelect: r = red \
-                                               \r\n        o = orange \
-                                               \r\n        g = green \
-                                               \r\n        b = blue\r\n\n\0";
-
-  SendString(string);
+  char key = 'x';
   
   while (1)
   {
 
-    SendChar(character);
+    // // code for previous lab sections
+    // // that sends a character and sends a string
+    // SendChar(character);
+    // HAL_Delay(1000);
+    // My_HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_6);
 
-    HAL_Delay(1000);
+    if (USART3->ISR & USART_ISR_RXNE){
 
-    HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_6);
+      key = USART3->RDR; // Read data
+      // key = getchar();
+      SendChar(key);
  
+      switch (key) {
+        case 'r':
+        case 'R':
+          My_HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_6);
+          break;
+        case 'g':
+        case 'G':
+          My_HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_9);
+          break;
+        case 'b':
+        case 'B':
+          My_HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_7);
+          break;
+        case 'o':
+        case 'O':
+          My_HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_8);
+          break;
+        default:
+          SendString(clearterminal);
+          SendString(wrongkeystr);
+          SendString(selectoption);
+      }
+    }
+
   }
   // return -1;
 }
 
 void SendString(char str[]){
 
+  // Do this until we hit End--of-String" character '\0'
   while (*str != '\0') {
+    // If USART3 TX register is not empty
     while (USART3->ISR & USART_ISR_TXE){
       // Send character and increment pointer
       SendChar(*str++);
@@ -127,7 +167,7 @@ void SendChar(char send_char){
 void USART3_4_IRQHandler(void){
 
   if (USART3->ISR & USART_ISR_RXNE){
-      uint8_t received = USART3->TDR; // Read data
+      uint8_t received = USART3->RDR; // Read data
       // Process received byte (e.g., store in buffer)
   }
   if (USART3->ISR & USART_ISR_TXE){
