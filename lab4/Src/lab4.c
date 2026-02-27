@@ -92,18 +92,29 @@ int main(void)
   // Messages
   char clearterminal[] = "\e[H\e[2J";
   char clearline[] = "\eU";
-  char wrongkeystr[] = "\r\n\nThat is not an option.";
+  char notoptionstr[] = "\r\n\nThat is not an option.";
   char selectoption[] = "\r\n\nSelect: r = red \
                            \r\n        o = orange \
                            \r\n        g = green \
                            \r\n        b = blue\r\n\n\0";
+    
+  char selectmultioption[] = "\r\n\nSelect a color and then an LED condition: \
+                                \n \
+                                \r\n    r = red           0 = off \
+                                \r\n    o = orange        1 = on \
+                                \r\n    g = green         2 = toggle \
+                                \r\n    b = blue\r\n\n\0";
   
   // // code for previous section that sends string
   SendString(clearterminal);
   SendString(selectoption);
 
-  char key  = 'x';
-  char key2 = 'x';
+  // delcare variables to be used in loop
+  // char key2 = 'x';
+  char key[] = "xx";
+  bool badinput = false;
+  uint8_t charcount = 0;
+  uint32_t pinNum;
   
   while (1)
   {
@@ -117,43 +128,72 @@ int main(void)
     // if (USART3->ISR & USART_ISR_RXNE){
     // key = USART3->RDR; // Read data
     
-    if (newdata == true){
-      key = received;
-      newdata = false;
-    // }
+    while (charcount < 2){
+
+      if (newdata == true){
+
+        key[charcount] = received;  // grab data from from USART3
+        newdata = false;            // reset flagqa
+        SendChar(key[charcount]);   // echo character back
+        charcount++;
+
+      }
+    }
+
+    // two characters received, start count over
+    charcount = 0;
 
     // if (newdata == true){
     //   key2 = received;
     //   newdata = false;
 
-      SendChar(key);
-      // SendChar(key2);
- 
-      switch (key) {
-        case 'r':
-        case 'R':
-          My_HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_6);
-          break;
-        case 'g':
-        case 'G':
-          My_HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_9);
-          break;
-        case 'b':
-        case 'B':
-          My_HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_7);
-          break;
-        case 'o':
-        case 'O':
-          My_HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_8);
-          break;
-        default:
-          SendString(clearterminal);
-          SendString(wrongkeystr);
-          SendString(selectoption);
-      }
+    // set the GPIO pin number
+    switch (key[0]) {
+      case 'r':
+      case 'R':
+        pinNum = GPIO_PIN_6;
+        break;
+      case 'g':
+      case 'G':
+        pinNum = GPIO_PIN_9;
+        break;
+      case 'b':
+      case 'B':
+        pinNum = GPIO_PIN_7;
+        break;
+      case 'o':
+      case 'O':
+        pinNum = GPIO_PIN_8;
+        break;
+      default:
+        badinput = true;
 
     }
 
+    // set the GPIO pin number
+    switch (key[1]) {
+      case '0':
+        My_HAL_GPIO_WritePin(GPIOC, pinNum, RESET);
+        break;
+      case '1':
+        My_HAL_GPIO_WritePin(GPIOC, pinNum, SET);
+        break;
+      case '2':
+        My_HAL_GPIO_TogglePin(GPIOC, pinNum);
+        break;
+      default:
+      badinput = true;
+    }
+
+    // if a bad value was input, send error message
+    if (badinput == true){
+
+        SendString(clearterminal);
+        SendString(notoptionstr);
+        // SendString(selectoption);
+        SendString(selectmultioption);
+        badinput = false;  // reset badletter flag
+    }
   }
   // return -1;
 }
@@ -168,7 +208,6 @@ void SendString(char str[]){
       SendChar(*str++);
     }
   }
-
 }
 
 
