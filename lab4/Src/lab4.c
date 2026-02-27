@@ -24,9 +24,12 @@ int main(void)
   /* Configure the system clock */
   SystemClock_Config();
 
+
+
+
   /***********************************************
-     Initialize GPIOC clock and
-     GPIOC Pins connected to the LEDs.
+     Initialize GPIOC clock
+     and GPIOC Pins connected to the LEDs.
   ************************************************/
 
   // Turn on GPIOC Peripheral clock
@@ -49,6 +52,7 @@ int main(void)
   My_HAL_GPIO_WritePin(GPIOC, GPIO_PIN_9, GPIO_PIN_SET);
 
   
+
   
   /***********************************************
      Initialize GPIOC pin 4 and 5 to be
@@ -69,13 +73,23 @@ int main(void)
   GPIOC->AFR[0] |= (0x01 << GPIO_AFRL_AFRL4_Pos);
   GPIOC->AFR[0] |= (0x01 << GPIO_AFRL_AFRL5_Pos);
 
+
+
+
+  /***********************************************
+   Initialize USART3 and set up USART3 IRQ
+   Turn the NVIC on to handle the USART3 interrupt
+   and set it's priority
+  ************************************************/
+
   // Turn on USART3 Peripheral Clock in RCC_APB1ENR
-  RCC->APB1ENR |= RCC_APB1ENR_USART3EN;
-  // SET_BIT(RCC->AHB1ENR, (1 << 17));
+  // SET_BIT(RCC->AHB1ENR, (1 << 17));  // This also works
+  RCC->APB1ENR |= RCC_APB1ENR_USART3EN;  
+ 
 
   // Set the USART3 Baud rate to 115200 Baud
   uint32_t BAUD_RATE = 115200;
-  uint32_t SYS_CLK = HAL_RCC_GetHCLKFreq();  // Should be 8000000 (8MHz)
+  uint32_t SYS_CLK = HAL_RCC_GetHCLKFreq();  // SYS_CLK should be 8000000 (8MHz)
   USART3->BRR = SYS_CLK / BAUD_RATE;
 
   // Turn on USART3 - USART Enable | Transmit Enable | Receive Enable
@@ -86,8 +100,13 @@ int main(void)
   HAL_NVIC_EnableIRQ(USART3_4_IRQn);        // Turn on the IRQ in the NVIC
   HAL_NVIC_SetPriority(USART3_4_IRQn,1,2);  // Set the Interrupt's priority
 
-  // Send the ascii code for the letter "R"
-  char character = 'X';
+
+
+  /***********************************************
+   Setup up string and characters for 
+   input and output
+   and for messaging
+  ************************************************/
  
   // Messages
   char clearterminal[] = "\e[H\e[2J";
@@ -105,13 +124,20 @@ int main(void)
                                 \r\n    g = green         2 = toggle \
                                 \r\n    b = blue\r\n\n\0";
   
-  // // code for previous section that sends string
+  // start message
   SendString(clearterminal);
-  SendString(selectoption);
+  SendString(selectmultioption);
+
+
+
+  /***********************************************
+   Main while forever loop
+   reads in two button presses
+   and then performs an action on the LEDs
+  ************************************************/
 
   // delcare variables to be used in loop
-  // char key2 = 'x';
-  char key[] = "xx";
+  char key[] = "xx";  // set up a 2-character string
   bool badinput = false;
   uint8_t charcount = 0;
   uint32_t pinNum;
@@ -119,21 +145,12 @@ int main(void)
   while (1)
   {
 
-    // // code for previous lab sections
-    // // that sends a character and sends a string
-    // SendChar(character);
-    // HAL_Delay(1000);
-    // My_HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_6);
-
-    // if (USART3->ISR & USART_ISR_RXNE){
-    // key = USART3->RDR; // Read data
-    
     while (charcount < 2){
 
       if (newdata == true){
 
         key[charcount] = received;  // grab data from from USART3
-        newdata = false;            // reset flagqa
+        newdata = false;            // reset flag
         SendChar(key[charcount]);   // echo character back
         charcount++;
 
@@ -142,10 +159,6 @@ int main(void)
 
     // two characters received, start count over
     charcount = 0;
-
-    // if (newdata == true){
-    //   key2 = received;
-    //   newdata = false;
 
     // set the GPIO pin number
     switch (key[0]) {
@@ -170,7 +183,7 @@ int main(void)
 
     }
 
-    // set the GPIO pin number
+    // perform the action on the GPIO pin
     switch (key[1]) {
       case '0':
         My_HAL_GPIO_WritePin(GPIOC, pinNum, RESET);
@@ -182,7 +195,7 @@ int main(void)
         My_HAL_GPIO_TogglePin(GPIOC, pinNum);
         break;
       default:
-      badinput = true;
+        badinput = true;
     }
 
     // if a bad value was input, send error message
@@ -190,13 +203,19 @@ int main(void)
 
         SendString(clearterminal);
         SendString(notoptionstr);
-        // SendString(selectoption);
         SendString(selectmultioption);
-        badinput = false;  // reset badletter flag
+        badinput = false;  // reset badinput flag
     }
   }
   // return -1;
 }
+
+
+
+/***********************************************
+ The rest of the functions
+ used to perform actions
+************************************************/
 
 void SendString(char str[]){
 
