@@ -10,7 +10,7 @@ void SystemClock_Config(void);
 void SendChar(char send_char);
 void SendString(char str[]);
 
-uint8_t volatile received = NULL;
+uint8_t volatile received;
 bool volatile newdata = false;  // 1 if new data
 
 /**
@@ -110,12 +110,13 @@ int main(void)
  
   // Messages
   char clearterminal[] = "\e[H\e[2J";
-  char clearline[] = "\eU";
+  // char clearline[] = "\eU";
   char notoptionstr[] = "\r\n\nThat is not an option.";
-  char selectoption[] = "\r\n\nSelect: r = red \
-                           \r\n        o = orange \
-                           \r\n        g = green \
-                           \r\n        b = blue\r\n\n\0";
+  /* char selectoption[] = "\r\n\nSelect: r = red \
+                            \r\n        o = orange \
+                            \r\n        g = green \
+                            \r\n        b = blue\r\n\n\0";
+  */
     
   char selectmultioption[] = "\r\n\nSelect a color and then an LED condition: \
                                 \n \

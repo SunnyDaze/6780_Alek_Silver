@@ -8,6 +8,7 @@ volatile uint32_t toggle_led_count = 0x00;
 unsigned long temp;
 
 void SystemClock_Config(void);
+void HAL_RCC_SYSCFG_CLK_ENABLE(void);
 
 /**
   * @brief  The application entry point.
