@@ -20,6 +20,14 @@ int main(void)
   RCC->AHBENR |= RCC_AHBENR_GPIOBEN;
   RCC->AHBENR |= RCC_AHBENR_GPIOCEN;
 
+  // Configure LED GPIOC Output pins for LED use
+  // Set up pins connected to LEDs as Ouput w/out Pull-Up/Pull-Down
+  GPIO_InitTypeDef initStr = {GPIO_PIN_6 | GPIO_PIN_7 | GPIO_PIN_8 | GPIO_PIN_9, // Pin   - GPIOx_MODER
+                              GPIO_MODE_OUTPUT_PP,      // Mode  - GPIOx_OTYPER
+                              GPIO_NOPULL,              // Pull  - GPIOx_PUPDR
+                              GPIO_SPEED_FREQ_LOW};    // Speed - GPIOx_OSPEEDR
+  My_HAL_GPIO_Init(GPIOC, &initStr); // Initializes pins PC8 & PC9
+
   /********************************************
   // Set up the gyroscope chip for use with I2C2
   // instead of default SPI mode
@@ -74,6 +82,119 @@ int main(void)
   HAL_GPIO_Init(GPIOC, &initStr);
   // Set initial state to high
   My_HAL_GPIO_WritePin(GPIOC, GPIO_PIN_0, SET);
+
+  /********************************************
+  // Set up the gyroscope I2C peripheral
+  // using mostly the default values
+  ********************************************/
+
+  // Enable the I2C2 peripheral in the RCC
+  RCC->APB1ENR |= RCC_APB1ENR_I2C2EN;
+
+  // Set the timing register TIMINGR to use
+  // 100kHz standard-mode I2C
+  // See pages 666 & 691/1017 in periph. ref. manual
+  // Reset value: 0x0000 0000
+  //               PRESC = 0xB | SCLL = 0x13 | SCLH = 0xF | SDADEL = 0x2 | SCLDEL = 0x4 
+  I2C2->TIMINGR = (0xB << 28   | 0x13 << 0   | 0xF << 8   | 0x2 << 16    | 0x4 << 20   );
+
+  // Enable I2C2 in the I2C2_CR1 register by setting PE (bit0) to 1
+  I2C2->CR1 |= (1 << I2C_CR1_PE_Pos);
+
+  // Set the timing register TIMINGR to use
+  // 100kHz standard-mode I2C
+  // See pages 666 & 691/1017 in periph. ref. manual
+  // Reset value: 0x0000 0000
+  //               PRESC = 0xB | SCLL = 0x13 | SCLH = 0xF | SDADEL = 0x2 | SCLDEL = 0x4 
+  I2C2->TIMINGR = (0xB << 28   | 0x13 << 0   | 0xF << 8   | 0x2 << 16    | 0x4 << 20   );
+
+  // Enable I2C2 in the I2C2_CR1 register by setting PE (bit0) to 1
+  I2C2->CR1 |= (1 << I2C_CR1_PE_Pos);
+
+  /********************************************
+  // Read the WHO_AM_I register on the 
+  // gyroscope I2C peripheral
+  // Green LED of correct, RED if wrong
+  ********************************************/
+
+  // Set gyroscope slave addres to 0x69 ... 
+  //  ... PB14 was already set high above
+  // PB14 is tied to SA0 (pin 4) on the gryoscope chip
+  // setting PB14 high set slave addr to 1101001b or 0x69
+
+  // set number of bytes to transmit =1
+  I2C2->CR2 &= ~I2C_CR2_NBYTES_Msk;  // clear NBYTES
+  I2C2->CR2 |= (1 << I2C_CR2_NBYTES_Pos); //(0x1 << 16)
+
+  // set RD_WRN to indicate a write (0=write)
+  I2C2->CR2 &= ~I2C_CR2_RD_WRN_Msk; // clear RD_WRN
+  I2C2->CR2 |= (0 << I2C_CR2_RD_WRN_Pos); //(0 << 10)
+
+  // set the start bit
+  I2C2->CR2 |= (1 << I2C_CR2_START_Pos); // set Start bit
+  
+  // wait until either the TXIS or NACKF flags are set
+  if (!(I2C2->CR1 & I2C_CR1_TXIE_Msk) |
+      !(I2C2->CR1 & I2C_CR1_NACKIE_Msk)){
+    
+    // TXIS flag is set, continue
+    if(!(I2C2->CR1 & I2C_CR1_TXIE_Msk)){
+
+      // Write the Address of the gyroscope's 
+      // "WHO_AM_I" register (0x0F)
+      // into the I2C transmit register TXRD
+      I2C2->TXDR = 0x0F;
+      
+    }
+  };
+
+  // Wait until the TC (Transfer Complete) flag is set
+  while(!(I2C2->ISR & I2C_ISR_TC_Msk)){
+    // Do nothing, just wait
+  }
+
+  // Reload the CR2 registers with same parameters as before
+  // but set RD_WRN to indicate a READ operation (1=read)
+  I2C2->CR2 &= ~I2C_CR2_NBYTES_Msk;       // clear NBYTES
+  I2C2->CR2 |= (1 << I2C_CR2_NBYTES_Pos); //(0x1 << 16)
+  I2C2->CR2 &= ~I2C_CR2_RD_WRN_Msk;       // clear RD_WRN
+  I2C2->CR2 |= (1 << I2C_CR2_RD_WRN_Pos); //(1 << 10)
+  I2C2->CR2 |= (1 << I2C_CR2_START_Pos);  // set Start bit
+
+  // wait until either the RXNE or NACKF flags are set
+  //  - Continue if the RXNE flag is set
+  uint32_t readbyte = 0x0000;
+  if (!(I2C2->ISR & I2C_ISR_RXNE_Msk) |
+      !(I2C2->ISR & I2C_ISR_NACKF_Msk)){
+    
+    // TXIS flag is set, continue
+    if(!(I2C2->ISR & I2C_ISR_RXNE_Msk)){
+
+      // Write the Address of the gyroscope's 
+      // "WHO_AM_I" register (0x0F)
+      // into the I2C transmit register TXRD
+      readbyte = I2C2->RXDR;
+      
+    }
+  };
+
+  // Wait until the TC (Transfer Complete) flag is set
+  while(!(I2C2->ISR & I2C_ISR_TC_Msk)){
+    // Do nothing, just wait
+  }
+
+  // Check the contents of the RXDR register to see
+  //  if it matches the expected value of 0xD3
+  if(readbyte == 0xD3){
+    My_HAL_GPIO_WritePin(GPIOC, GPIO_PIN_9, SET);   // green
+    My_HAL_GPIO_WritePin(GPIOC, GPIO_PIN_6, RESET); // red
+  }  else{
+    My_HAL_GPIO_WritePin(GPIOC, GPIO_PIN_6, SET);   // red
+    My_HAL_GPIO_WritePin(GPIOC, GPIO_PIN_9, RESET); // green
+  }
+
+  // Set the stop bit in the CR2 register to release the I2C2 bus
+  I2C2->CR2 |= I2C_CR2_STOP_Msk;
 
  while (1)
   {
