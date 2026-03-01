@@ -16,20 +16,20 @@ int main(void)
   /* Configure the system clock */
   SystemClock_Config();
 
-  /********************************************
-  // Set up the gyroscope chip for use with I2C2
-  // instead of default SPI mode
-  ********************************************/
-  
   // Turn on GPIOB and GPIOC Peripheral clocks
   RCC->AHBENR |= RCC_AHBENR_GPIOBEN;
   RCC->AHBENR |= RCC_AHBENR_GPIOCEN;
 
+  /********************************************
+  // Set up the gyroscope chip for use with I2C2
+  // instead of default SPI mode
+  ********************************************/
+
   // Configure PB11
-  GPIO_InitTypeDef initStr = {GPIO_PIN_11,             // Pin   - GPIOx_MODER
-                              GPIO_MODE_AF_OD,        // Mode  - GPIOx_OTYPER
-                              GPIO_NOPULL,            // Pull  - GPIOx_PUPDR
-                              GPIO_SPEED_FREQ_LOW};  // Speed - GPIOx_OSPEEDR
+  initStr.Pin = GPIO_PIN_11,
+  initStr.Mode = GPIO_MODE_AF_OD,
+  initStr.Pull = GPIO_NOPULL,
+  initStr.Speed = GPIO_SPEED_FREQ_LOW;
     // Initializes PB11
   HAL_GPIO_Init(GPIOB, &initStr);
 
@@ -41,10 +41,10 @@ int main(void)
 
 
   // Set GPIOB Pins 13 alternate function mode
-  initStr.Pin = GPIO_PIN_13;            // Pins  - GPIOx_MODER
-  initStr.Mode = GPIO_MODE_AF_OD;       // Mode  - GPIOx_OTYPER
-  initStr.Pull = GPIO_NOPULL;           // Pull  - GPIOx_PUPDR
-  initStr.Speed = GPIO_SPEED_FREQ_LOW;  // Speed - GPIOx_OSPEEDR
+  initStr.Pin = GPIO_PIN_13;
+  initStr.Mode = GPIO_MODE_AF_OD;
+  initStr.Pull = GPIO_NOPULL;
+  initStr.Speed = GPIO_SPEED_FREQ_LOW;
   // Initializes pin PB13
   HAL_GPIO_Init(GPIOB, &initStr);
 
@@ -54,40 +54,28 @@ int main(void)
   GPIOC->AFR[1] |= (0x05 << GPIO_AFRH_AFRH5_Pos);
 
   // Configure GPIOB Pin14
-  initStr.Pin = GPIO_PIN_14;            // Pins  - GPIOx_MODER
-  initStr.Mode = GPIO_MODE_OUTPUT_PP;   // Mode  - GPIOx_OTYPER
-  initStr.Pull = GPIO_NOPULL;           // Pull  - GPIOx_PUPDR
-  initStr.Speed = GPIO_SPEED_FREQ_LOW;  // Speed - GPIOx_OSPEEDR
+  initStr.Pin = GPIO_PIN_14;
+  initStr.Mode = GPIO_MODE_OUTPUT_PP;
+  initStr.Pull = GPIO_NOPULL;
+  initStr.Speed = GPIO_SPEED_FREQ_LOW;
   // Initializes pin PB14
   HAL_GPIO_Init(GPIOB, &initStr);
   // Set initial state to high
+  // This is tied to SA0 (pin 4) on the gryoscope chip
+  // setting the slave address to 1101001b or 0x69
   My_HAL_GPIO_WritePin(GPIOB, GPIO_PIN_14, SET);
 
   // Configure GPIOC Pin0
-  initStr.Pin = GPIO_PIN_0;             // Pins  - GPIOx_MODER
-  initStr.Mode = GPIO_MODE_OUTPUT_PP;   // Mode  - GPIOx_OTYPER
-  initStr.Pull = GPIO_NOPULL;           // Pull  - GPIOx_PUPDR
-  initStr.Speed = GPIO_SPEED_FREQ_LOW;  // Speed - GPIOx_OSPEEDR
+  initStr.Pin = GPIO_PIN_0;
+  initStr.Mode = GPIO_MODE_OUTPUT_PP;
+  initStr.Pull = GPIO_NOPULL;
+  initStr.Speed = GPIO_SPEED_FREQ_LOW;
   // Initializes pin PC0
   HAL_GPIO_Init(GPIOC, &initStr);
   // Set initial state to high
   My_HAL_GPIO_WritePin(GPIOC, GPIO_PIN_0, SET);
 
-  /********************************************
-  // Set up the gyroscope I2C peripheral
-  // using mostly the default values
-  ********************************************/
-
-  // Enable the I2C2 peripheral in the RCC
-  RCC->APB1ENR |= RCC_APB1ENR_I2C2EN;
-
-  // Set the timing register TIMINGR to use
-  // 100kHz standard-mode I2C
-  // See pages 666 & 691/1017 in periph. ref. manual
-  // Reset value: 0x0000 0000
-  // I2C->TIMINGR = ()
-
-  while (1)
+ while (1)
   {
  
   }
