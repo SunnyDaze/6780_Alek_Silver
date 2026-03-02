@@ -4,6 +4,8 @@
 
 void SystemClock_Config(void);
 void Error_Handler(void);
+void ReadWriteI2C(uint32_t deviceAddress, uint32_t memAddress, bool rd1wr0, uint32_t nbytes, uint8_t data);
+uint32_t delay = 1000;
 
 /**
   * @brief  The application entry point.
@@ -19,6 +21,10 @@ int main(void)
   // Turn on GPIOB and GPIOC Peripheral clocks
   RCC->AHBENR |= RCC_AHBENR_GPIOBEN;
   RCC->AHBENR |= RCC_AHBENR_GPIOCEN;
+  // Enable the I2C2 peripheral in the RCC
+  // RCC->APB1ENR |= RCC_APB1ENR_I2C2EN;
+  __HAL_RCC_I2C2_CLK_ENABLE();
+
 
   // Configure LED GPIOC Output pins for LED use
   // Set up pins connected to LEDs as Ouput w/out Pull-Up/Pull-Down
@@ -27,6 +33,7 @@ int main(void)
                               GPIO_NOPULL,              // Pull  - GPIOx_PUPDR
                               GPIO_SPEED_FREQ_LOW};    // Speed - GPIOx_OSPEEDR
   My_HAL_GPIO_Init(GPIOC, &initStr); // Initializes pins PC8 & PC9
+  // My_HAL_GPIO_WritePin(GPIOC, GPIO_PIN_9, SET); // turn on green LED
 
   /********************************************
   // Set up the gyroscope chip for use with I2C2
@@ -36,7 +43,8 @@ int main(void)
   // Configure PB11
   initStr.Pin = GPIO_PIN_11,
   initStr.Mode = GPIO_MODE_AF_OD,
-  initStr.Pull = GPIO_NOPULL,
+  initStr.Pull = GPIO_PULLUP;
+  // initStr.Pull = GPIO_NOPULL,
   initStr.Speed = GPIO_SPEED_FREQ_LOW;
     // Initializes PB11
   HAL_GPIO_Init(GPIOB, &initStr);
@@ -45,13 +53,14 @@ int main(void)
   // which connects it to the STM32 I2C_SDA pin
   // See page 162 & 163/1017 in periph. ref. manual
   // AF1 = (0x01), pin 11 = postion 3 in high register [1]
-  GPIOC->AFR[1] |= (0x01 << GPIO_AFRH_AFRH3_Pos);
+  GPIOB->AFR[1] |= (0x01 << GPIO_AFRH_AFRH3_Pos);
 
 
   // Set GPIOB Pins 13 alternate function mode
   initStr.Pin = GPIO_PIN_13;
   initStr.Mode = GPIO_MODE_AF_OD;
-  initStr.Pull = GPIO_NOPULL;
+  initStr.Pull = GPIO_PULLUP;
+  // initStr.Pull = GPIO_NOPULL;
   initStr.Speed = GPIO_SPEED_FREQ_LOW;
   // Initializes pin PB13
   HAL_GPIO_Init(GPIOB, &initStr);
@@ -59,7 +68,7 @@ int main(void)
   // Set Port B pin 13 to 
   // which connects it to the STM32 I2C_SCL pin
   // AF1 = (0x05), pin 13 = postion 5 in high register [1]
-  GPIOC->AFR[1] |= (0x05 << GPIO_AFRH_AFRH5_Pos);
+  GPIOB->AFR[1] |= (0x05 << GPIO_AFRH_AFRH5_Pos);
 
   // Configure GPIOB Pin14
   initStr.Pin = GPIO_PIN_14;
@@ -88,24 +97,11 @@ int main(void)
   // using mostly the default values
   ********************************************/
 
-  // Enable the I2C2 peripheral in the RCC
-  RCC->APB1ENR |= RCC_APB1ENR_I2C2EN;
-
   // Set the timing register TIMINGR to use
   // 100kHz standard-mode I2C
   // See pages 666 & 691/1017 in periph. ref. manual
   // Reset value: 0x0000 0000
-  //               PRESC = 0xB | SCLL = 0x13 | SCLH = 0xF | SDADEL = 0x2 | SCLDEL = 0x4 
-  I2C2->TIMINGR = (0xB << 28   | 0x13 << 0   | 0xF << 8   | 0x2 << 16    | 0x4 << 20   );
-
-  // Enable I2C2 in the I2C2_CR1 register by setting PE (bit0) to 1
-  I2C2->CR1 |= (1 << I2C_CR1_PE_Pos);
-
-  // Set the timing register TIMINGR to use
-  // 100kHz standard-mode I2C
-  // See pages 666 & 691/1017 in periph. ref. manual
-  // Reset value: 0x0000 0000
-  //               PRESC = 0xB | SCLL = 0x13 | SCLH = 0xF | SDADEL = 0x2 | SCLDEL = 0x4 
+  //               PRESC = 0xB | SCLL = 0x13 | SCLH = 0xF | SDADEL = 0x2 | SCLDEH = 0x4 
   I2C2->TIMINGR = (0xB << 28   | 0x13 << 0   | 0xF << 8   | 0x2 << 16    | 0x4 << 20   );
 
   // Enable I2C2 in the I2C2_CR1 register by setting PE (bit0) to 1
@@ -117,10 +113,13 @@ int main(void)
   // Green LED of correct, RED if wrong
   ********************************************/
 
-  // Set gyroscope slave addres to 0x69 ... 
-  //  ... PB14 was already set high above
-  // PB14 is tied to SA0 (pin 4) on the gryoscope chip
-  // setting PB14 high set slave addr to 1101001b or 0x69
+  // Do nothing if I2C2 is busy
+  while (I2C2->ISR & I2C_ISR_BUSY);
+
+  // Put the gyroscope 7-bit I2C address (0X69)
+  // into the I2C2_CR2 bits [7:1] NOT including bit 0
+  // which is the 7-bit address versio of the SADD
+  I2C2->CR2 |= (0x69 << 1);
 
   // set number of bytes to transmit =1
   I2C2->CR2 &= ~I2C_CR2_NBYTES_Msk;  // clear NBYTES
@@ -128,55 +127,54 @@ int main(void)
 
   // set RD_WRN to indicate a write (0=write)
   I2C2->CR2 &= ~I2C_CR2_RD_WRN_Msk; // clear RD_WRN
-  I2C2->CR2 |= (0 << I2C_CR2_RD_WRN_Pos); //(0 << 10)
+  I2C2->CR2 |= (0 << I2C_CR2_RD_WRN_Pos); //(0 << 10) 0 for write
 
   // set the start bit
   I2C2->CR2 |= (1 << I2C_CR2_START_Pos); // set Start bit
   
-  // wait until either the TXIS or NACKF flags are set
-  if (!(I2C2->CR1 & I2C_CR1_TXIE_Msk) |
-      !(I2C2->CR1 & I2C_CR1_NACKIE_Msk)){
-    
-    // TXIS flag is set, continue
-    if(!(I2C2->CR1 & I2C_CR1_TXIE_Msk)){
+  // wait until either of the TXIS or NACKF flags are set
+  while((I2C2->ISR & I2C_ISR_TXIS) == 0 && (I2C2->ISR & I2C_ISR_NACKF) == 0);
 
-      // Write the Address of the gyroscope's 
-      // "WHO_AM_I" register (0x0F)
-      // into the I2C transmit register TXRD
-      I2C2->TXDR = 0x0F;
-      
-    }
-  };
+  // TXIS flag is set, continue
+  if((I2C2->ISR & I2C_ISR_TXIS_Msk)){
+   // Write the Address of the gyroscope's
+    // "WHO_AM_I" register (0x0F)
+    // into the I2C transmit register TXRD
+    I2C2->TXDR = 0x0F;
+  } else if (I2C2->ISR & I2C_ISR_NACKF_Msk){ // If NACKF ..set throw error
+    return -1;
+  }
 
   // Wait until the TC (Transfer Complete) flag is set
-  while(!(I2C2->ISR & I2C_ISR_TC_Msk)){
-    // Do nothing, just wait
-  }
+  while(!(I2C2->ISR & I2C_ISR_TC)); // I2C_ISR_TC_Msk)){
+
+  // // Wait for BUSY flag to clear
+  // while (I2C2->ISR & I2C_ISR_BUSY);
 
   // Reload the CR2 registers with same parameters as before
   // but set RD_WRN to indicate a READ operation (1=read)
   I2C2->CR2 &= ~I2C_CR2_NBYTES_Msk;       // clear NBYTES
   I2C2->CR2 |= (1 << I2C_CR2_NBYTES_Pos); //(0x1 << 16)
   I2C2->CR2 &= ~I2C_CR2_RD_WRN_Msk;       // clear RD_WRN
-  I2C2->CR2 |= (1 << I2C_CR2_RD_WRN_Pos); //(1 << 10)
+  I2C2->CR2 |= (1 << I2C_CR2_RD_WRN_Pos); //(1 << 10) 1 for read
   I2C2->CR2 |= (1 << I2C_CR2_START_Pos);  // set Start bit
 
   // wait until either the RXNE or NACKF flags are set
   //  - Continue if the RXNE flag is set
   uint32_t readbyte = 0x0000;
-  if (!(I2C2->ISR & I2C_ISR_RXNE_Msk) |
-      !(I2C2->ISR & I2C_ISR_NACKF_Msk)){
-    
-    // TXIS flag is set, continue
-    if(!(I2C2->ISR & I2C_ISR_RXNE_Msk)){
+    // wait until either the TXIS or NACKF flags are set
+  // wait until either the TXIS or NACKF flags are set
+  while((I2C2->ISR & I2C_ISR_RXNE) == 0 && (I2C2->ISR & I2C_ISR_NACKF) == 0);
 
-      // Write the Address of the gyroscope's 
-      // "WHO_AM_I" register (0x0F)
-      // into the I2C transmit register TXRD
-      readbyte = I2C2->RXDR;
-      
-    }
-  };
+  // TXIS flag is set, continue
+  if((I2C2->ISR & I2C_ISR_RXNE_Msk)){
+    // Write the Address of the gyroscope's 
+    // "WHO_AM_I" register (0x0F)
+    // into the I2C transmit register TXRD
+    readbyte = I2C2->RXDR;
+  } else if (I2C2->ISR & I2C_ISR_NACKF_Msk){ // If NACKF ..set throw error
+    return -1;
+  }
 
   // Wait until the TC (Transfer Complete) flag is set
   while(!(I2C2->ISR & I2C_ISR_TC_Msk)){
@@ -201,6 +199,32 @@ int main(void)
  
   }
   return -1;
+}
+
+void WriteI2C(uint32_t deviceAddress, uint32_t memAddress, uint32_t nbytes, uint8_t data){
+
+  // Wait for BUSY flag to clear
+  while (I2C2->ISR & I2C_ISR_BUSY);
+
+  // Put the 7-bit I2C address of the slave device 
+  // into the I2C2_CR2 SADD bits [7:1] - NOT including bit 0 
+  I2C2->CR2 |= (deviceAddress << 1);
+
+  I2C2->CR2 &= ~I2C_CR2_NBYTES_Msk;       // clear NBYTES
+  I2C2->CR2 |= (1 << I2C_CR2_NBYTES_Pos); // number transmit bytes = 1
+  I2C2->CR2 &= ~I2C_CR2_RD_WRN_Msk;       // clear RD_WRN
+  I2C2->CR2 |= (0 << I2C_CR2_RD_WRN_Pos); //(0 << 10) 0 for write
+  I2C2->CR2 |= (1 << I2C_CR2_START_Pos);  // set Start bit
+
+  if (!(I2C2->ISR & I2C_ISR_TXIS_Msk) |
+    !(I2C2->ISR & I2C_ISR_NACKF_Msk)){
+  
+    // TXIS flag is set, continue
+    if(!(I2C2->ISR & I2C_ISR_TXIS_Msk)){
+      // Write the Address I2C transmit register TXRD
+      I2C2->TXDR = memAddress;
+    }
+  };
 }
 
 /**
