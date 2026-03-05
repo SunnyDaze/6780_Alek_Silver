@@ -4,8 +4,9 @@
 
 void SystemClock_Config(void);
 void Error_Handler(void);
-void ReadWriteI2C(uint32_t deviceAddress, uint32_t memAddress, bool rd1wr0, uint32_t nbytes, uint8_t data);
-uint32_t delay = 1000;
+void WriteI2C(uint32_t deviceAddress, uint32_t memAddress, uint32_t nbytes);
+void ReadI2C(uint32_t deviceAddress, uint32_t memAddress, uint32_t nbytes);
+uint32_t readbyte = 0x0000;
 
 /**
   * @brief  The application entry point.
@@ -113,73 +114,76 @@ int main(void)
   // Green LED of correct, RED if wrong
   ********************************************/
 
-  // Do nothing if I2C2 is busy
-  while (I2C2->ISR & I2C_ISR_BUSY);
+  uint32_t gyroAddress = 0x69;
+  uint32_t WHO_AM_I = 0x0F;
 
-  // Put the gyroscope 7-bit I2C address (0X69)
-  // into the I2C2_CR2 bits [7:1] NOT including bit 0
-  // which is the 7-bit address versio of the SADD
-  I2C2->CR2 |= (0x69 << 1);
+  // read a byte from slave device memory address
+  // and put it into the global variable "readbyte"
+  ReadI2C(gyroAddress, WHO_AM_I, 1);
 
-  // set number of bytes to transmit =1
-  I2C2->CR2 &= ~I2C_CR2_NBYTES_Msk;  // clear NBYTES
-  I2C2->CR2 |= (1 << I2C_CR2_NBYTES_Pos); //(0x1 << 16)
-
-  // set RD_WRN to indicate a write (0=write)
-  I2C2->CR2 &= ~I2C_CR2_RD_WRN_Msk; // clear RD_WRN
-  I2C2->CR2 |= (0 << I2C_CR2_RD_WRN_Pos); //(0 << 10) 0 for write
-
-  // set the start bit
-  I2C2->CR2 |= (1 << I2C_CR2_START_Pos); // set Start bit
-  
-  // wait until either of the TXIS or NACKF flags are set
-  while((I2C2->ISR & I2C_ISR_TXIS) == 0 && (I2C2->ISR & I2C_ISR_NACKF) == 0);
-
-  // TXIS flag is set, continue
-  if((I2C2->ISR & I2C_ISR_TXIS_Msk)){
-   // Write the Address of the gyroscope's
-    // "WHO_AM_I" register (0x0F)
-    // into the I2C transmit register TXRD
-    I2C2->TXDR = 0x0F;
-  } else if (I2C2->ISR & I2C_ISR_NACKF_Msk){ // If NACKF ..set throw error
-    return -1;
-  }
-
-  // Wait until the TC (Transfer Complete) flag is set
-  while(!(I2C2->ISR & I2C_ISR_TC)); // I2C_ISR_TC_Msk)){
-
-  // // Wait for BUSY flag to clear
+  // // Do nothing if I2C2 is busy
   // while (I2C2->ISR & I2C_ISR_BUSY);
 
-  // Reload the CR2 registers with same parameters as before
-  // but set RD_WRN to indicate a READ operation (1=read)
-  I2C2->CR2 &= ~I2C_CR2_NBYTES_Msk;       // clear NBYTES
-  I2C2->CR2 |= (1 << I2C_CR2_NBYTES_Pos); //(0x1 << 16)
-  I2C2->CR2 &= ~I2C_CR2_RD_WRN_Msk;       // clear RD_WRN
-  I2C2->CR2 |= (1 << I2C_CR2_RD_WRN_Pos); //(1 << 10) 1 for read
-  I2C2->CR2 |= (1 << I2C_CR2_START_Pos);  // set Start bit
+  // // Put the gyroscope 7-bit I2C address (0X69)
+  // // into the I2C2_CR2 bits [7:1] NOT including bit 0
+  // // which is the 7-bit address versio of the SADD
+  // I2C2->CR2 |= (0x69 << 1);
 
-  // wait until either the RXNE or NACKF flags are set
-  //  - Continue if the RXNE flag is set
-  uint32_t readbyte = 0x0000;
-    // wait until either the TXIS or NACKF flags are set
-  // wait until either the TXIS or NACKF flags are set
-  while((I2C2->ISR & I2C_ISR_RXNE) == 0 && (I2C2->ISR & I2C_ISR_NACKF) == 0);
+  // // set number of bytes to transmit =1
+  // I2C2->CR2 &= ~I2C_CR2_NBYTES_Msk;  // clear NBYTES
+  // I2C2->CR2 |= (1 << I2C_CR2_NBYTES_Pos); //(0x1 << 16)
 
-  // TXIS flag is set, continue
-  if((I2C2->ISR & I2C_ISR_RXNE_Msk)){
-    // Write the Address of the gyroscope's 
-    // "WHO_AM_I" register (0x0F)
-    // into the I2C transmit register TXRD
-    readbyte = I2C2->RXDR;
-  } else if (I2C2->ISR & I2C_ISR_NACKF_Msk){ // If NACKF ..set throw error
-    return -1;
-  }
+  // // set RD_WRN to indicate a write (0=write)
+  // I2C2->CR2 &= ~I2C_CR2_RD_WRN_Msk; // clear RD_WRN
+  // I2C2->CR2 |= (0 << I2C_CR2_RD_WRN_Pos); //(0 << 10) 0 for write
 
-  // Wait until the TC (Transfer Complete) flag is set
-  while(!(I2C2->ISR & I2C_ISR_TC_Msk)){
-    // Do nothing, just wait
-  }
+  // // set the start bit
+  // I2C2->CR2 |= (1 << I2C_CR2_START_Pos); // set Start bit
+  
+  // // wait until either of the TXIS or NACKF flags are set
+  // while((I2C2->ISR & I2C_ISR_TXIS) == 0 && (I2C2->ISR & I2C_ISR_NACKF) == 0);
+
+  // // TXIS flag is set, continue
+  // if((I2C2->ISR & I2C_ISR_TXIS_Msk)){
+  //  // Write the Address of the gyroscope's
+  //   // "WHO_AM_I" register (0x0F)
+  //   // into the I2C transmit register TXRD
+  //   I2C2->TXDR = 0x0F;
+  // } else if (I2C2->ISR & I2C_ISR_NACKF_Msk){ // If NACKF ..set throw error
+  //   return -1;
+  // }
+
+  // // Wait until the TC (Transfer Complete) flag is set
+  // while(!(I2C2->ISR & I2C_ISR_TC)); // I2C_ISR_TC_Msk)){
+
+  // // Reload the CR2 registers with same parameters as before
+  // // but set RD_WRN to indicate a READ operation (1=read)
+  // I2C2->CR2 &= ~I2C_CR2_NBYTES_Msk;       // clear NBYTES
+  // I2C2->CR2 |= (1 << I2C_CR2_NBYTES_Pos); //(0x1 << 16)
+  // I2C2->CR2 &= ~I2C_CR2_RD_WRN_Msk;       // clear RD_WRN
+  // I2C2->CR2 |= (1 << I2C_CR2_RD_WRN_Pos); //(1 << 10) 1 for read
+  // I2C2->CR2 |= (1 << I2C_CR2_START_Pos);  // set Start bit
+
+  // // wait until either the RXNE or NACKF flags are set
+  // //  - Continue if the RXNE flag is set
+  // // wait until either the TXIS or NACKF flags are set
+  // // wait until either the TXIS or NACKF flags are set
+  // while((I2C2->ISR & I2C_ISR_RXNE) == 0 && (I2C2->ISR & I2C_ISR_NACKF) == 0);
+
+  // // TXIS flag is set, continue
+  // if((I2C2->ISR & I2C_ISR_RXNE_Msk)){
+  //   // Write the Address of the gyroscope's 
+  //   // "WHO_AM_I" register (0x0F)
+  //   // into the I2C transmit register TXRD
+  //   readbyte = I2C2->RXDR;
+  // } else if (I2C2->ISR & I2C_ISR_NACKF_Msk){ // If NACKF ..set throw error
+  //   return -1;
+  // }
+
+  // // Wait until the TC (Transfer Complete) flag is set
+  // while(!(I2C2->ISR & I2C_ISR_TC_Msk)){
+  //   // Do nothing, just wait
+  // }
 
   // Check the contents of the RXDR register to see
   //  if it matches the expected value of 0xD3
@@ -201,30 +205,89 @@ int main(void)
   return -1;
 }
 
-void WriteI2C(uint32_t deviceAddress, uint32_t memAddress, uint32_t nbytes, uint8_t data){
+void WriteI2C(uint32_t deviceAddress, uint32_t memAddress, uint32_t nbytes){
 
   // Wait for BUSY flag to clear
   while (I2C2->ISR & I2C_ISR_BUSY);
 
   // Put the 7-bit I2C address of the slave device 
-  // into the I2C2_CR2 SADD bits [7:1] - NOT including bit 0 
+  // into the I2C2_CR2 SADD bits [7:1] - NOT including bit 0
+  I2C2->CR2 &= ~I2C_CR2_SADD_Msk;
   I2C2->CR2 |= (deviceAddress << 1);
 
-  I2C2->CR2 &= ~I2C_CR2_NBYTES_Msk;       // clear NBYTES
-  I2C2->CR2 |= (1 << I2C_CR2_NBYTES_Pos); // number transmit bytes = 1
-  I2C2->CR2 &= ~I2C_CR2_RD_WRN_Msk;       // clear RD_WRN
-  I2C2->CR2 |= (0 << I2C_CR2_RD_WRN_Pos); //(0 << 10) 0 for write
-  I2C2->CR2 |= (1 << I2C_CR2_START_Pos);  // set Start bit
+  I2C2->CR2 &= ~I2C_CR2_NBYTES_Msk;            // clear NBYTES
+  I2C2->CR2 |= (nbytes << I2C_CR2_NBYTES_Pos); //number of bytes to read
+  I2C2->CR2 &= ~I2C_CR2_RD_WRN_Msk;            // clear RD_WRN
+  I2C2->CR2 |= (0 << I2C_CR2_RD_WRN_Pos);      //(0 << 10) 0 for write
+  I2C2->CR2 |= (1 << I2C_CR2_START_Pos);       // set Start bit
 
-  if (!(I2C2->ISR & I2C_ISR_TXIS_Msk) |
-    !(I2C2->ISR & I2C_ISR_NACKF_Msk)){
-  
-    // TXIS flag is set, continue
-    if(!(I2C2->ISR & I2C_ISR_TXIS_Msk)){
-      // Write the Address I2C transmit register TXRD
-      I2C2->TXDR = memAddress;
-    }
-  };
+  // wait until either of the TXIS or NACKF flags are set
+  while((I2C2->ISR & I2C_ISR_TXIS) == 0 && (I2C2->ISR & I2C_ISR_NACKF) == 0);
+
+  // TXIS flag is set, continue
+  if((I2C2->ISR & I2C_ISR_TXIS_Msk)){
+   // Write to slave device telling it which address read data from
+    I2C2->TXDR = 0x0F;
+  } else if (I2C2->ISR & I2C_ISR_NACKF_Msk){ // If NACKF .. throw error
+      Error_Handler();  // This disables interrupts and enters an infinite loop
+  }
+}
+
+void ReadI2C(uint32_t deviceAddress, uint32_t memAddress, uint32_t nbytes){
+
+  // Wait for BUSY flag to clear
+  while (I2C2->ISR & I2C_ISR_BUSY);
+
+  // Send the device the memeory address you want it to read
+  // data from and send back to you
+
+  // Put the 7-bit I2C address of the slave device 
+  // into the I2C2_CR2 SADD bits [7:1] - NOT including bit 0
+  I2C2->CR2 &= ~I2C_CR2_SADD_Msk;
+  I2C2->CR2 |= (deviceAddress << 1);
+
+  I2C2->CR2 &= ~I2C_CR2_NBYTES_Msk;            // clear NBYTES
+  I2C2->CR2 |= (nbytes << I2C_CR2_NBYTES_Pos); //number of bytes to read
+  I2C2->CR2 &= ~I2C_CR2_RD_WRN_Msk;            // clear RD_WRN
+  I2C2->CR2 |= (0 << I2C_CR2_RD_WRN_Pos);      //(0 << 10) 0 for write
+  I2C2->CR2 |= (1 << I2C_CR2_START_Pos);       // set Start bit
+
+  // wait until either of the TXIS or NACKF flags are set
+  while((I2C2->ISR & I2C_ISR_TXIS) == 0 && (I2C2->ISR & I2C_ISR_NACKF) == 0);
+
+  // TXIS flag is set, continue
+  if((I2C2->ISR & I2C_ISR_TXIS_Msk)){
+   // Write to slave device telling it which address read data from
+    I2C2->TXDR = memAddress;
+  } else if (I2C2->ISR & I2C_ISR_NACKF_Msk){ // If NACKF .. throw error
+      Error_Handler();  // This disables interrupts and enters an infinite loop
+  }
+
+  // Wait until the TC (Transfer Complete) flag is set
+  while(!(I2C2->ISR & I2C_ISR_TC)); // I2C_ISR_TC_Msk)){
+
+  I2C2->CR2 &= ~I2C_CR2_NBYTES_Msk;             // clear NBYTES
+  I2C2->CR2 |= (nbytes << I2C_CR2_NBYTES_Pos);  // (0x1 << 16)
+  I2C2->CR2 &= ~I2C_CR2_RD_WRN_Msk;             // clear RD_WRN
+  I2C2->CR2 |= (1 << I2C_CR2_RD_WRN_Pos);       //(1 << 10) 1 for read
+  I2C2->CR2 |= (1 << I2C_CR2_START_Pos);        // set Start bit
+
+  // wait until either the TXIS or NACKF flags are set
+  while((I2C2->ISR & I2C_ISR_RXNE) == 0 && (I2C2->ISR & I2C_ISR_NACKF) == 0);
+
+  // TXIS flag is set, continue
+  if((I2C2->ISR & I2C_ISR_RXNE_Msk)){
+    // get received byte
+    readbyte = I2C2->RXDR;
+  } else if (I2C2->ISR & I2C_ISR_NACKF_Msk){ // If NACKF ..set throw error
+    Error_Handler();  // This disables interrupts and enters an infinite loop
+  }
+
+  // Wait until the TC (Transfer Complete) flag is set
+  while(!(I2C2->ISR & I2C_ISR_TC_Msk)){
+    // Do nothing, just wait
+  }
+
 }
 
 /**
