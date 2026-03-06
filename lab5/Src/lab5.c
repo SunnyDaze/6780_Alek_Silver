@@ -224,12 +224,13 @@ int main(void)
   
   
   // variables used to read the X and Y registers
-  uint8_t  OUT_X_H = 0;
-  uint8_t  OUT_X_L = 0;
-  uint8_t  OUT_Y_H = 0;
-  uint8_t  OUT_Y_L = 0;
-  int16_t OUT_X = 0;
-  int16_t OUT_Y = 0;
+  uint8_t  OUT_X_H;
+  uint8_t  OUT_X_L;
+  uint8_t  OUT_Y_H;
+  uint8_t  OUT_Y_L;
+  int16_t OUT_X;
+  int16_t OUT_Y;
+  int16_t Hysterisis = 1000;
 
  while (1) 
   {
@@ -250,33 +251,43 @@ int main(void)
     // LD6 (bottom) blue   user LED is connected to the I/O PC7 of the STM32F072RBT6.
 
     // registers are in two's compliment, so MSB = 1 means positive number
-    if (OUT_X >= 0){ // X angle is a Positive number
+    if (OUT_X >= 0 + Hysterisis){ //}  && OUT_X < xHysterisis)){ // X angle is a Positive number
+      // turn off green LED
       My_HAL_GPIO_WritePin(GPIOC, GPIO_PIN_9, RESET);
       // turn on orange LED
       My_HAL_GPIO_WritePin(GPIOC, GPIO_PIN_8, SET);
-    } else {
+    } else if (OUT_X <= -Hysterisis){
       // turn on green LED
       My_HAL_GPIO_WritePin(GPIOC, GPIO_PIN_9, SET);
       // turn off orange LED
-      My_HAL_GPIO_WritePin(GPIOC, GPIO_PIN_8, RESET);
+      My_HAL_GPIO_WritePin(GPIOC, GPIO_PIN_8, RESET);  
+    } else {
       // turn off green LED
-      
+      My_HAL_GPIO_WritePin(GPIOC, GPIO_PIN_9, RESET);
+      // turn off orange LED
+      My_HAL_GPIO_WritePin(GPIOC, GPIO_PIN_8, RESET);
+      // turn off green LED     
     }
 
      // registers are in two's compliment, so MSB = 1 means positive number
-    if (OUT_Y >=0 ){ // X angle is a Positive number
+    if (OUT_Y >=0 + Hysterisis){ // X angle is a Positive number
       // turn off red LED
       My_HAL_GPIO_WritePin(GPIOC, GPIO_PIN_6, RESET);
       // turn on oblue LED
       My_HAL_GPIO_WritePin(GPIOC, GPIO_PIN_7, SET);
-    } else {
+    } else if (OUT_Y <= -Hysterisis){
       // turn on red LED
       My_HAL_GPIO_WritePin(GPIOC, GPIO_PIN_6, SET);
       // turn off blue LED
       My_HAL_GPIO_WritePin(GPIOC, GPIO_PIN_7, RESET);
+    } else {
+      // turn off red LED
+      My_HAL_GPIO_WritePin(GPIOC, GPIO_PIN_6, RESET);
+      // turn off blue LED
+      My_HAL_GPIO_WritePin(GPIOC, GPIO_PIN_7, RESET);
     }
 
-    // HAL_Delay(100);  // delay 100ms 
+    HAL_Delay(100);  // delay 100ms 
  
   }
   return -1;
