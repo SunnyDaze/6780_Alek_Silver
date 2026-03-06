@@ -217,10 +217,64 @@ int main(void)
   byteread = ReadI2C(gyroAddress, gyroCR1, 1);
   byteread = ReadI2C(gyroAddress, WHO_AM_I, 1);
 
-  HAL_Delay(10);
+  // X and Y register high and low addresses on the gyroscope chip
+  uint8_t OUT_X_LAddr = 0x28;
+  uint8_t OUT_X_HAddr = 0x29;
+  uint8_t OUT_Y_LAddr = 0x2A;
+  uint8_t OUT_Y_HAddr = 0x2B;
+  
+  
+  // variables used to read the X and Y registers
+  uint8_t  OUT_X_H = 0;
+  uint8_t  OUT_X_L = 0;
+  uint8_t  OUT_Y_H = 0;
+  uint8_t  OUT_Y_L = 0;
+  uint16_t OUT_X = 0;
+  uint16_t OUT_Y = 0;
 
  while (1)
   {
+
+    OUT_X_L = ReadI2C(gyroAddress, OUT_X_LAddr, 1);
+    OUT_X_H = ReadI2C(gyroAddress, OUT_X_HAddr, 1);
+    OUT_Y_L = ReadI2C(gyroAddress, OUT_Y_LAddr, 1);
+    OUT_Y_H = ReadI2C(gyroAddress, OUT_Y_HAddr, 1);
+
+    OUT_X = ((OUT_X_H << 8) | (OUT_X_L));
+    OUT_Y = ((OUT_Y_H << 8) | (OUT_Y_L));
+
+    // LD3 (top)    red    user LED is connected to the I/O PC6 of the STM32F072RBT6.
+    // LD4 (left)   orange user LED is connected to the I/O PC8 of the STM32F072RBT6.
+    // LD5 (right)  green  user LED is connected to the I/O PC9 of the STM32F072RBT6.
+    // LD6 (bottom) blue   user LED is connected to the I/O PC7 of the STM32F072RBT6.
+
+    // registers are in two's compliment, so MSB = 1 means positive number
+    if ((OUT_X | 0x8000) == 0x8000){ // X angle is a Positive number
+      // turn on green LED
+      My_HAL_GPIO_WritePin(GPIOC, GPIO_PIN_9, SET);
+      // turn off orange LED
+      My_HAL_GPIO_WritePin(GPIOC, GPIO_PIN_8, RESET);
+    } else {
+      // turn off green LED
+      My_HAL_GPIO_WritePin(GPIOC, GPIO_PIN_9, RESET);
+      // turn on orange LED
+      My_HAL_GPIO_WritePin(GPIOC, GPIO_PIN_8, SET);
+    }
+
+     // registers are in two's compliment, so MSB = 1 means positive number
+    if ((OUT_Y | 0x8000) == 0x8000){ // X angle is a Positive number
+      // turn on red LED
+      My_HAL_GPIO_WritePin(GPIOC, GPIO_PIN_6, SET);
+      // turn off blue LED
+      My_HAL_GPIO_WritePin(GPIOC, GPIO_PIN_7, RESET);
+    } else {
+      // turn off red LED
+      My_HAL_GPIO_WritePin(GPIOC, GPIO_PIN_6, RESET);
+      // turn on oblue LED
+      My_HAL_GPIO_WritePin(GPIOC, GPIO_PIN_7, SET);
+    }
+
+    // HAL_Delay(100);  // delay 100ms 
  
   }
   return -1;
@@ -338,7 +392,7 @@ void WriteI2C(uint32_t deviceAddress, uint32_t memAddress, uint32_t nbytes, uint
   // Wait until the TC (Transfer Complete) flag is set
   while(!(I2C2->ISR & I2C_ISR_TC_Msk)){}; // Do nothing, just wait
 
-  I2C2->CR2 |= (1 << I2C_CR2_STOP_Pos);       // set Stop bit
+  // I2C2->CR2 |= (1 << I2C_CR2_STOP_Pos);       // set Stop bit
 
 }
 
