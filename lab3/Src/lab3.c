@@ -6,6 +6,9 @@
 #include "core_cm0.h"
 
 void SystemClock_Config(void);
+void Error_Handler(void);
+void HAL_RCC_GPIOA_CLK_Enable(void);
+void HAL_RCC_GPIOC_CLK_Enable(void);
 
 /**
   * @brief  The application entry point.
