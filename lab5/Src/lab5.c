@@ -6,8 +6,9 @@
 
 void SystemClock_Config(void);
 void Error_Handler(void);
-void WriteI2C(uint32_t deviceAddress, uint32_t memAddress, uint32_t nbytes, uint8_t data);
+void WriteI2C(uint32_t slaveAddress, uint32_t writeAddress, uint32_t nbytes, uint8_t data);
 uint8_t ReadI2C(uint32_t deviceAddress, uint32_t memAddress, uint32_t nbytes);
+int twosCompToDec(uint32_t twosCompNuml);
 uint32_t readbyte = 0x0000;
 
 /**
@@ -207,8 +208,6 @@ int main(void)
     My_HAL_GPIO_WritePin(GPIOC, GPIO_PIN_9, RESET); // green
   }
 
-
-
   uint32_t gyroCR1 = 0x20;
 
   // 0xB = 0000 1011 which enables X and Y, and puts the gyro in sleep/normal mode
@@ -229,10 +228,10 @@ int main(void)
   uint8_t  OUT_X_L = 0;
   uint8_t  OUT_Y_H = 0;
   uint8_t  OUT_Y_L = 0;
-  uint16_t OUT_X = 0;
-  uint16_t OUT_Y = 0;
+  int16_t OUT_X = 0;
+  int16_t OUT_Y = 0;
 
- while (1)
+ while (1) 
   {
 
     OUT_X_L = ReadI2C(gyroAddress, OUT_X_LAddr, 1);
@@ -240,8 +239,10 @@ int main(void)
     OUT_Y_L = ReadI2C(gyroAddress, OUT_Y_LAddr, 1);
     OUT_Y_H = ReadI2C(gyroAddress, OUT_Y_HAddr, 1);
 
-    OUT_X = ((OUT_X_H << 8) | (OUT_X_L));
-    OUT_Y = ((OUT_Y_H << 8) | (OUT_Y_L));
+    OUT_X = twosCompToDec(((OUT_X_H << 8) | (OUT_X_L)));
+    OUT_Y = twosCompToDec(((OUT_Y_H << 8) | (OUT_Y_L)));
+
+    
 
     // LD3 (top)    red    user LED is connected to the I/O PC6 of the STM32F072RBT6.
     // LD4 (left)   orange user LED is connected to the I/O PC8 of the STM32F072RBT6.
@@ -249,29 +250,30 @@ int main(void)
     // LD6 (bottom) blue   user LED is connected to the I/O PC7 of the STM32F072RBT6.
 
     // registers are in two's compliment, so MSB = 1 means positive number
-    if ((OUT_X | 0x8000) == 0x8000){ // X angle is a Positive number
+    if (OUT_X >= 0){ // X angle is a Positive number
+      My_HAL_GPIO_WritePin(GPIOC, GPIO_PIN_9, RESET);
+      // turn on orange LED
+      My_HAL_GPIO_WritePin(GPIOC, GPIO_PIN_8, SET);
+    } else {
       // turn on green LED
       My_HAL_GPIO_WritePin(GPIOC, GPIO_PIN_9, SET);
       // turn off orange LED
       My_HAL_GPIO_WritePin(GPIOC, GPIO_PIN_8, RESET);
-    } else {
       // turn off green LED
-      My_HAL_GPIO_WritePin(GPIOC, GPIO_PIN_9, RESET);
-      // turn on orange LED
-      My_HAL_GPIO_WritePin(GPIOC, GPIO_PIN_8, SET);
+      
     }
 
      // registers are in two's compliment, so MSB = 1 means positive number
-    if ((OUT_Y | 0x8000) == 0x8000){ // X angle is a Positive number
-      // turn on red LED
-      My_HAL_GPIO_WritePin(GPIOC, GPIO_PIN_6, SET);
-      // turn off blue LED
-      My_HAL_GPIO_WritePin(GPIOC, GPIO_PIN_7, RESET);
-    } else {
+    if (OUT_Y >=0 ){ // X angle is a Positive number
       // turn off red LED
       My_HAL_GPIO_WritePin(GPIOC, GPIO_PIN_6, RESET);
       // turn on oblue LED
       My_HAL_GPIO_WritePin(GPIOC, GPIO_PIN_7, SET);
+    } else {
+      // turn on red LED
+      My_HAL_GPIO_WritePin(GPIOC, GPIO_PIN_6, SET);
+      // turn off blue LED
+      My_HAL_GPIO_WritePin(GPIOC, GPIO_PIN_7, RESET);
     }
 
     // HAL_Delay(100);  // delay 100ms 
@@ -280,10 +282,18 @@ int main(void)
   return -1;
 }
 
+int twosCompToDec(uint32_t twosCompNuml){
+    if ((twosCompNuml & 0x80000000) == 0) {
+        return twosCompNuml; // Positive number
+    } else {
+        return -(~twosCompNuml + 1); // Negative number
+    }
+}
+
 uint8_t ReadI2C(uint32_t deviceAddress, uint32_t memAddress, uint32_t nbytes){
 
-  // // Wait for BUSY flag to clear
-  // while (I2C2->ISR & I2C_ISR_BUSY);
+  // Wait for BUSY flag to clear
+  while (I2C2->ISR & I2C_ISR_BUSY);
 
   // Send the device the memeory address that you
   // want it to read data from and send back to you
@@ -335,28 +345,27 @@ uint8_t ReadI2C(uint32_t deviceAddress, uint32_t memAddress, uint32_t nbytes){
     // Do nothing, just wait
   }
 
+  I2C2->CR2 |= (1 << I2C_CR2_STOP_Pos);       // set Stop bit
+
   return readbyte;
 
 }
 
-void WriteI2C(uint32_t deviceAddress, uint32_t memAddress, uint32_t nbytes, uint8_t data){
+void WriteI2C(uint32_t slaveAddress, uint32_t writeAddress, uint32_t nbytes, uint8_t data){
 
   // Wait for BUSY flag to clear
   while (I2C2->ISR & I2C_ISR_BUSY);
 
-  // Send the device the memeory address that you
-  // want it to read data from and send back to you
-
-  // Put the 7-bit I2C address of the slave device 
+  // Write the 7-bit I2C address of the slave device 
   // into the I2C2_CR2 SADD bits [7:1] - NOT including bit 0
   I2C2->CR2 &= ~I2C_CR2_SADD_Msk;
-  I2C2->CR2 |= (deviceAddress << 1);
+  I2C2->CR2 |= (slaveAddress << 1);
 
-  I2C2->CR2 &= ~I2C_CR2_NBYTES_Msk;               // clear NBYTES
-  I2C2->CR2 |= (1 << I2C_CR2_NBYTES_Pos);  // 1 byte to write
-  I2C2->CR2 &= ~I2C_CR2_RD_WRN_Msk;            // clear RD_WRN
-  I2C2->CR2 |= (0 << I2C_CR2_RD_WRN_Pos);      // (0 << 10) 0 for write
-  I2C2->CR2 |= (1 << I2C_CR2_START_Pos);       // set Start bit
+  I2C2->CR2 &= ~I2C_CR2_NBYTES_Msk;         // clear NBYTES
+  I2C2->CR2 |= ((nbytes+1) << I2C_CR2_NBYTES_Pos);   // 1 writeAddress to send
+  I2C2->CR2 &= ~I2C_CR2_RD_WRN_Msk;         // clear RD_WRN
+  I2C2->CR2 |= (0 << I2C_CR2_RD_WRN_Pos);   // (0 << 10) 0 for write
+  I2C2->CR2 |= (1 << I2C_CR2_START_Pos);    // set Start bit
 
   // wait until either of the TXIS or NACKF flags are set
   while((I2C2->ISR & I2C_ISR_TXIS) == 0 && (I2C2->ISR & I2C_ISR_NACKF) == 0);
@@ -364,21 +373,18 @@ void WriteI2C(uint32_t deviceAddress, uint32_t memAddress, uint32_t nbytes, uint
   // TXIS flag is set, continue
   if((I2C2->ISR & I2C_ISR_TXIS_Msk)){
    // Write to slave device telling it which address read data from
-    I2C2->TXDR = memAddress;
+    I2C2->TXDR = writeAddress;
   } else if (I2C2->ISR & I2C_ISR_NACKF_Msk){ // If NACKF .. throw error
       Error_Handler();  // This disables interrupts and enters an infinite loop
   }
 
-  // Wait until the TC (Transfer Complete) flag is set
-  while(!(I2C2->ISR & I2C_ISR_TC));
+  // I2C2->CR2 &= ~I2C_CR2_NBYTES_Msk;             // clear NBYTES
+  // I2C2->CR2 |= (nbytes << I2C_CR2_NBYTES_Pos);  // num data bytes to write
+  // I2C2->CR2 &= ~I2C_CR2_RD_WRN_Msk;             // clear RD_WRN
+  // I2C2->CR2 |= (0 << I2C_CR2_RD_WRN_Pos);       // (0 << 10) 0 for write
+  // I2C2->CR2 |= (1 << I2C_CR2_START_Pos);     // set Start bit
 
-  I2C2->CR2 &= ~I2C_CR2_NBYTES_Msk;            // clear NBYTES
-  I2C2->CR2 |= (1 << I2C_CR2_NBYTES_Pos);      // 1 byte to write
-  I2C2->CR2 &= ~I2C_CR2_RD_WRN_Msk;            // clear RD_WRN
-  I2C2->CR2 |= (0 << I2C_CR2_RD_WRN_Pos);      // (0 << 10) 0 for write
-  I2C2->CR2 |= (1 << I2C_CR2_START_Pos);       // set Start bit
-
-  // wait until either of the TXIS or NACKF flags are set
+    // wait until either of the TXIS or NACKF flags are set
   while((I2C2->ISR & I2C_ISR_TXIS) == 0 && (I2C2->ISR & I2C_ISR_NACKF) == 0);
 
   // TXIS flag is set, continue
@@ -392,7 +398,7 @@ void WriteI2C(uint32_t deviceAddress, uint32_t memAddress, uint32_t nbytes, uint
   // Wait until the TC (Transfer Complete) flag is set
   while(!(I2C2->ISR & I2C_ISR_TC_Msk)){}; // Do nothing, just wait
 
-  // I2C2->CR2 |= (1 << I2C_CR2_STOP_Pos);       // set Stop bit
+  I2C2->CR2 |= (1 << I2C_CR2_STOP_Pos);       // set Stop bit
 
 }
 
