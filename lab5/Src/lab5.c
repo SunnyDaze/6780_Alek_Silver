@@ -2,7 +2,6 @@
 #include "stm32f0xx_hal.h"
 #include "hal_gpio.h"
 #include "stm32f0xx_hal_gpio.h"
-#include "stdio.h"
 
 void SystemClock_Config(void);
 void Error_Handler(void);
@@ -101,101 +100,34 @@ int main(void)
   // using mostly the default values
   ********************************************/
 
-  // Turn of / Reset I2C2 in the I2C2_CR1
-  // register prior to configuring the register
-  // by setting PE (bit0) to 0
-  // I2C2->CR1 |= (0 << I2C_CR1_PE_Pos);
-  I2C2->CR1 &= ~I2C_CR1_PE_Msk;        // clear the PE bit
-  HAL_Delay(1);
+  // Turn of / Reset I2C2 in the I2C2_CR1 register prior to 
+  // configuring the register by setting PE (bit0) to 0
+  I2C2->CR1 &= ~I2C_CR1_PE_Msk;
+  HAL_Delay(10);  // delay to let the reset take hold
 
-  // Set the timing register TIMINGR to use
-  // 100kHz standard-mode I2C
+  // Set the timing register TIMINGR to use100kHz (standard-mode I2C)
   // See pages 666 & 691/1017 in periph. ref. manual
   // Reset value: 0x0000 0000
-  //    for 8MHz:  PRESC = 0x1 | SCLL = 0x13 | SCLH = 0xF | SDADEL = 0x2 | SCLDEL = 0x4 
+  // 8MHz values:  PRESC = 0x1 | SCLL = 0x13 | SCLH = 0xF | SDADEL = 0x2 | SCLDEL = 0x4 
   I2C2->TIMINGR = (0x1 << 28   | 0x13 << 0   | 0xF << 8   | 0x2 << 16    | 0x4 << 20   );
 
   // Enable I2C2 in the I2C2_CR1 register by setting PE (bit0) to 1
   I2C2->CR1 |= (1 << I2C_CR1_PE_Pos);
 
   /********************************************
-  // Read the WHO_AM_I register on the 
-  // gyroscope I2C peripheral
-  // Green LED of correct, RED if wrong
+  // Read the WHO_AM_I register on the gyroscope I2C peripheral
+  // Turn on green LED of correct values is read, or RED if wrong
   ********************************************/
 
   uint32_t gyroAddress = 0x69;
   uint32_t WHO_AM_I = 0x0F;
+  uint32_t byteread;
 
   // read a byte from slave device memory address
   // and put it into the global variable "readbyte"
-  uint8_t byteread = ReadI2C(gyroAddress, WHO_AM_I, 1);
+  byteread = ReadI2C(gyroAddress, WHO_AM_I, 1);
 
-  // // Do nothing if I2C2 is busy
-  // while (I2C2->ISR & I2C_ISR_BUSY);
-
-  // // Put the gyroscope 7-bit I2C address (0X69)
-  // // into the I2C2_CR2 bits [7:1] NOT including bit 0
-  // // which is the 7-bit address versio of the SADD
-  // I2C2->CR2 |= (0x69 << 1);
-
-  // // set number of bytes to transmit =1
-  // I2C2->CR2 &= ~I2C_CR2_NBYTES_Msk;  // clear NBYTES
-  // I2C2->CR2 |= (1 << I2C_CR2_NBYTES_Pos); //(0x1 << 16)
-
-  // // set RD_WRN to indicate a write (0=write)
-  // I2C2->CR2 &= ~I2C_CR2_RD_WRN_Msk; // clear RD_WRN
-  // I2C2->CR2 |= (0 << I2C_CR2_RD_WRN_Pos); //(0 << 10) 0 for write
-
-  // // set the start bit
-  // I2C2->CR2 |= (1 << I2C_CR2_START_Pos); // set Start bit
-  
-  // // wait until either of the TXIS or NACKF flags are set
-  // while((I2C2->ISR & I2C_ISR_TXIS) == 0 && (I2C2->ISR & I2C_ISR_NACKF) == 0);
-
-  // // TXIS flag is set, continue
-  // if((I2C2->ISR & I2C_ISR_TXIS_Msk)){
-  //  // Write the Address of the gyroscope's
-  //   // "WHO_AM_I" register (0x0F)
-  //   // into the I2C transmit register TXRD
-  //   I2C2->TXDR = 0x0F;
-  // } else if (I2C2->ISR & I2C_ISR_NACKF_Msk){ // If NACKF ..set throw error
-  //   return -1;
-  // }
-
-  // // Wait until the TC (Transfer Complete) flag is set
-  // while(!(I2C2->ISR & I2C_ISR_TC)); // I2C_ISR_TC_Msk)){
-
-  // // Reload the CR2 registers with same parameters as before
-  // // but set RD_WRN to indicate a READ operation (1=read)
-  // I2C2->CR2 &= ~I2C_CR2_NBYTES_Msk;       // clear NBYTES
-  // I2C2->CR2 |= (1 << I2C_CR2_NBYTES_Pos); //(0x1 << 16)
-  // I2C2->CR2 &= ~I2C_CR2_RD_WRN_Msk;       // clear RD_WRN
-  // I2C2->CR2 |= (1 << I2C_CR2_RD_WRN_Pos); //(1 << 10) 1 for read
-  // I2C2->CR2 |= (1 << I2C_CR2_START_Pos);  // set Start bit
-
-  // // wait until either the RXNE or NACKF flags are set
-  // //  - Continue if the RXNE flag is set
-  // // wait until either the TXIS or NACKF flags are set
-  // // wait until either the TXIS or NACKF flags are set
-  // while((I2C2->ISR & I2C_ISR_RXNE) == 0 && (I2C2->ISR & I2C_ISR_NACKF) == 0);
-
-  // // TXIS flag is set, continue
-  // if((I2C2->ISR & I2C_ISR_RXNE_Msk)){
-  //   // Write the Address of the gyroscope's 
-  //   // "WHO_AM_I" register (0x0F)
-  //   // into the I2C transmit register TXRD
-  //   readbyte = I2C2->RXDR;
-  // } else if (I2C2->ISR & I2C_ISR_NACKF_Msk){ // If NACKF ..set throw error
-  //   return -1;
-  // }
-
-  // // Wait until the TC (Transfer Complete) flag is set
-  // while(!(I2C2->ISR & I2C_ISR_TC_Msk)){
-  //   // Do nothing, just wait
-  // }
-
-  // Set the stop bit in the CR2 register to release the I2C2 bus
+    // Set the stop bit in the CR2 register to release the I2C2 bus
   I2C2->CR2 |= I2C_CR2_STOP_Msk; 
 
   // Check the contents of the RXDR register to see
@@ -208,13 +140,16 @@ int main(void)
     My_HAL_GPIO_WritePin(GPIOC, GPIO_PIN_9, RESET); // green
   }
 
+  // the gyroscopes control register 1
   uint32_t gyroCR1 = 0x20;
 
+  // Configure the gyroscope so we can read the X an dY axes.
   // 0xB = 0000 1011 which enables X and Y, and puts the gyro in sleep/normal mode
   WriteI2C(gyroAddress, gyroCR1, 1, 0xB);
 
-  byteread = ReadI2C(gyroAddress, gyroCR1, 1);
-  byteread = ReadI2C(gyroAddress, WHO_AM_I, 1);
+  // // debug code to see if gyroCR1 was written
+  // byteread = ReadI2C(gyroAddress, gyroCR1, 1);
+  // byteread = ReadI2C(gyroAddress, WHO_AM_I, 1);
 
   // X and Y register high and low addresses on the gyroscope chip
   uint8_t OUT_X_LAddr = 0x28;
@@ -243,47 +178,39 @@ int main(void)
     OUT_X = twosCompToDec(((OUT_X_H << 8) | (OUT_X_L)));
     OUT_Y = twosCompToDec(((OUT_Y_H << 8) | (OUT_Y_L)));
 
-    
+    // This is a breakdown of which LED is connected to which Port C pin
+    // LD3 (top)    red    user LED is connected to the I/O PC6 of the STM32F072RBT6
+    // LD4 (left)   orange user LED is connected to the I/O PC8 of the STM32F072RBT6
+    // LD5 (right)  green  user LED is connected to the I/O PC9 of the STM32F072RBT6
+    // LD6 (bottom) blue   user LED is connected to the I/O PC7 of the STM32F072RBT6
 
-    // LD3 (top)    red    user LED is connected to the I/O PC6 of the STM32F072RBT6.
-    // LD4 (left)   orange user LED is connected to the I/O PC8 of the STM32F072RBT6.
-    // LD5 (right)  green  user LED is connected to the I/O PC9 of the STM32F072RBT6.
-    // LD6 (bottom) blue   user LED is connected to the I/O PC7 of the STM32F072RBT6.
-
-    // registers are in two's compliment, so MSB = 1 means positive number
-    if (OUT_X >= 0 + Hysterisis){ //}  && OUT_X < xHysterisis)){ // X angle is a Positive number
-      // turn off green LED
+    // Turn on/off green and orange LEDs according to angular acceleration direction.
+    if (OUT_X >= 0 + Hysterisis){
+      // turn the green LED off and the orange LED on
       My_HAL_GPIO_WritePin(GPIOC, GPIO_PIN_9, RESET);
-      // turn on orange LED
       My_HAL_GPIO_WritePin(GPIOC, GPIO_PIN_8, SET);
     } else if (OUT_X <= -Hysterisis){
-      // turn on green LED
+      // turn the green LED on and the orange LED off
       My_HAL_GPIO_WritePin(GPIOC, GPIO_PIN_9, SET);
-      // turn off orange LED
       My_HAL_GPIO_WritePin(GPIOC, GPIO_PIN_8, RESET);  
     } else {
-      // turn off green LED
+      // turn the green LED off and the ornage LED off
       My_HAL_GPIO_WritePin(GPIOC, GPIO_PIN_9, RESET);
-      // turn off orange LED
       My_HAL_GPIO_WritePin(GPIOC, GPIO_PIN_8, RESET);
-      // turn off green LED     
     }
 
-     // registers are in two's compliment, so MSB = 1 means positive number
+    // Turn on/off red and blue LEDs according to angular acceleration direction.
     if (OUT_Y >=0 + Hysterisis){ // X angle is a Positive number
-      // turn off red LED
+      // turn the red LED off and the blue LED on
       My_HAL_GPIO_WritePin(GPIOC, GPIO_PIN_6, RESET);
-      // turn on oblue LED
       My_HAL_GPIO_WritePin(GPIOC, GPIO_PIN_7, SET);
     } else if (OUT_Y <= -Hysterisis){
-      // turn on red LED
+      // turn the red LED on and the blue LED off
       My_HAL_GPIO_WritePin(GPIOC, GPIO_PIN_6, SET);
-      // turn off blue LED
       My_HAL_GPIO_WritePin(GPIOC, GPIO_PIN_7, RESET);
     } else {
-      // turn off red LED
+      // turn the red LED off and the blue LED off
       My_HAL_GPIO_WritePin(GPIOC, GPIO_PIN_6, RESET);
-      // turn off blue LED
       My_HAL_GPIO_WritePin(GPIOC, GPIO_PIN_7, RESET);
     }
 
@@ -389,13 +316,7 @@ void WriteI2C(uint32_t slaveAddress, uint32_t writeAddress, uint32_t nbytes, uin
       Error_Handler();  // This disables interrupts and enters an infinite loop
   }
 
-  // I2C2->CR2 &= ~I2C_CR2_NBYTES_Msk;             // clear NBYTES
-  // I2C2->CR2 |= (nbytes << I2C_CR2_NBYTES_Pos);  // num data bytes to write
-  // I2C2->CR2 &= ~I2C_CR2_RD_WRN_Msk;             // clear RD_WRN
-  // I2C2->CR2 |= (0 << I2C_CR2_RD_WRN_Pos);       // (0 << 10) 0 for write
-  // I2C2->CR2 |= (1 << I2C_CR2_START_Pos);     // set Start bit
-
-    // wait until either of the TXIS or NACKF flags are set
+  // wait until either of the TXIS or NACKF flags are set
   while((I2C2->ISR & I2C_ISR_TXIS) == 0 && (I2C2->ISR & I2C_ISR_NACKF) == 0);
 
   // TXIS flag is set, continue
