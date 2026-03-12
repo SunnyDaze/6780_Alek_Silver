@@ -7,6 +7,20 @@
         {
             "type": "stlinkgdbtarget",
             "request": "launch",
+            "name": "STM32Cube: Launch ST-Link GDB Server",
+            "origin": "snippet",
+            "cwd": "${workspaceFolder}",
+            "preBuild": "${command:st-stm32-ide-debug-launch.build}",
+            "runEntry": "main",
+            "imagesAndSymbols": [
+                {
+                    "imageFileName": "${command:st-stm32-ide-debug-launch.get-projects-binary-from-context1}"
+                }
+            ]
+        },
+        {
+            "type": "stlinkgdbtarget",
+            "request": "launch",
             "name": "STM32Cube: STM32 Launch ST-Link GDB Server",
             "origin": "snippet",
             "cwd": "${workspaceFolder}",
@@ -39,7 +53,7 @@
                         "label": "duty_cycle",
                         "port": 0,
                         "type": "graph",
-                        "encoding":"unsigned",
+                        "encoding": "unsigned",
                         "graphId": "1",
                         "scale": 1
                     },
@@ -47,7 +61,7 @@
                         "label": "target_rpm",
                         "port": 1,
                         "type": "graph",
-                        "encoding":"signed",
+                        "encoding": "signed",
                         "graphId": "2",
                         "scale": 1
                     },
@@ -55,7 +69,7 @@
                         "label": "motor_speed",
                         "port": 2,
                         "type": "graph",
-                        "encoding":"signed",
+                        "encoding": "signed",
                         "graphId": "3",
                         "scale": 1
                     }
@@ -75,22 +89,22 @@
                     "minimum": 0,
                     "plots": [
                         {
-                            "graphId": "1", 
+                            "graphId": "1",
                             "label": "duty_cycle",
                             "color": "#53753c"
                         },
                         {
-                            "graphId": "2", 
+                            "graphId": "2",
                             "label": "target_rpm",
                             "color": "#955f20"
                         },
                         {
-                            "graphId": "3", 
+                            "graphId": "3",
                             "label": "motor_speed",
                             "color": "#B57EDC"
                         }
                     ]
-                },
+                }
             ]
         }
     ]
