@@ -118,7 +118,7 @@ int main(void)
   while (1)
   {
  
-    for (int i = 0; i < sizeof(sine_table); i++) {
+    for (int i = 0; i < sizeof(sawtooth_table); i++) {
     
       // Turn on LEDs accroding to the ADC's input voltage
       adcValue = ADC1->DR;
@@ -129,7 +129,7 @@ int main(void)
         My_HAL_GPIO_WritePin(GPIOC, GPIO_PIN_6,RESET);
       }
 
-      if (adcValue > (1*(threshold / 3)-20)){
+      if (adcValue > (1*(threshold / 3)-0)){
         My_HAL_GPIO_WritePin(GPIOC, GPIO_PIN_9,SET);
       } else {
         My_HAL_GPIO_WritePin(GPIOC, GPIO_PIN_9,RESET);
@@ -148,9 +148,9 @@ int main(void)
       }
 
       // Generate a waveform with the DAC converter by sending next value to DAC
-      DAC->DHR8R1 = triangle_table[i];      DAC->SWTRIGR |= DAC_SWTRIGR_SWTRIG1;
+      DAC->DHR8R1 = sine_table[i];      DAC->SWTRIGR |= DAC_SWTRIGR_SWTRIG1;
 
-      HAL_Delay(40); // Delay 1 ms
+      HAL_Delay(100); // Delay 1 ms
     }
 
 
