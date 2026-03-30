@@ -14,13 +14,15 @@
             "runEntry": "main",
             "imagesAndSymbols": [
                 {
-                    "imageFileName": "${command:cmake.launchTargetPath}"
+                    // "imageFileName": "${command:cmake.launchTargetPath}"
+                    "imageFileName": "/home/alek/Nextcloud/EpikFam/Documents/UofUDocuments/ECE_6780_Embedded_System_Design/Labs/Lab 01/6780_Alek_Silver/build/lab7/lab7.elf"
                 }
             ]
         },
         {
             "cwd": "${workspaceRoot}",
-            "executable": "${command:cmake.launchTargetPath}",
+            // "executable": "${command:cmake.launchTargetPath}",
+            "executable": "/home/alek/Nextcloud/EpikFam/Documents/UofUDocuments/ECE_6780_Embedded_System_Design/Labs/Lab 01/6780_Alek_Silver/build/lab7/lab7.elf",
             "name": "RTT graphing",
             "request": "launch",
             "type": "cortex-debug",
@@ -68,8 +70,8 @@
                     "timespan": 1,
                     "type": "realtime",
                     "annotate": false,
-                    "maximum": 120,
-                    "minimum": 0,
+                    "maximum": 200,
+                    "minimum": -200,
                     "plots": [
                         {
                             "graphId": "1",

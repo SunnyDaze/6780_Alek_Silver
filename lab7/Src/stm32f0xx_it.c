@@ -44,10 +44,22 @@ void PendSV_Handler(void)
   */
 void SysTick_Handler(void)
 {
-  HAL_IncTick();
+  // #ifdef LAB7
+  //   Lab7_SysTick_Handler();
+  //   // Lab7_SysTick_Callback();
+  // #else
+  //   // Default HAL or FreeRTOS tick handling
+  //   HAL_IncTick();
+  // #endif
+
   /* USER CODE BEGIN SystickIRQn 0 */
+  HAL_IncTick();
+  // HAL_SYSTICK_IRQHandler();
+    // Explicitly call your custom function
+  Lab7_Systick_Callback();
   #if defined(LAB7)
-  Lab7_SysTick_Handler();
+  // Lab7_SysTick_Handler();
+  Lab7_SysTick_Callback();
   #endif
   /* USER CODE END SystickIRQn 0 */
   /* USER CODE BEGIN SystickIRQn 1 */

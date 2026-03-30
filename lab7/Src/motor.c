@@ -16,6 +16,7 @@ volatile int8_t adc_value;      // ADC measured motor current
 volatile int16_t error;         // Speed error signal
 volatile uint8_t Kp;            // Proportional gain
 volatile uint8_t Ki;            // Integral gain
+volatile uint32_t output;
 
 static uint8_t buf0[1024];
 static uint8_t buf1[1024];
@@ -71,12 +72,19 @@ void pwm_init(void) {
     GPIOA->AFR[0] |= (1 << 18);
 
     // Set up a PA5, PA6 as GPIO output pins for motor direction control
-    GPIOA->MODER &= 0xFFFFC3FF; // clear PA5, PA6 bits,
-    GPIOA->MODER |= (1 << 10) | (1 << 12);
+    // PA6 & PA7 are used for touch sensor
+    // Using PA5 and PA8 instead
+    // GPIOA->MODER &= 0xFFFFC3FF; // clear PA5, PA6 bits,
+    // GPIOA->MODER |= (1 << 10) | (1 << 12) | (1 << 14); // PA7 = 14
+    // Set up a PA5, PA8 as GPIO output pins for motor direction control
+    GPIOA->MODER &= 0xFFFCF3FF; // clear PA5, PA8 bits,
+    GPIOA->MODER |= (1 << 10) | (1 << 16); 
+
 
     //Initialize one direction pin to high, the other low
     GPIOA->ODR |= (1 << 5);
     GPIOA->ODR &= ~(1 << 6);
+    GPIOA->ODR &= ~(1 << 7);
 
     // Set up PWM timer
     RCC->APB1ENR |= RCC_APB1ENR_TIM14EN;
@@ -204,6 +212,8 @@ void PI_update(void) {
      *       more resolution.
      */
 
+     error = target_rpm - motor_speed;
+
 
     /// TODO: Calculate integral portion of PI controller, write to "error_integral" variable
 
@@ -217,7 +227,9 @@ void PI_update(void) {
 
     /// TODO: Calculate proportional portion, add integral and write to "output" variable
 
-    int16_t output = 0; // Change this!
+    // int16_t output = 0; // Change this!
+    // output = 80; // Change this!
+    output = target_rpm;
 
     /* Because the calculated values for the PI controller are significantly larger than
      * the allowable range for duty cycle, you'll need to divide the result down into
@@ -241,6 +253,8 @@ void PI_update(void) {
 
     pwm_setDutyCycle(output);
     duty_cycle = output;            // For debug viewing
+
+    log_data();
 
     // Read the ADC value for current monitoring, actual conversion into meaningful units
     // will be performed by STMStudio
