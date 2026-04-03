@@ -89,7 +89,7 @@ int main(void) {
     button_init();                          // Initialize button
     motor_init();                           // Initialize motor code
 
-    target_rpm = 100;
+    // target_rpm = 100;
     // // Set up a PA5, PA6 as GPIO output pins for motor direction control
     HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, 0);
     HAL_GPIO_WritePin(GPIOA, GPIO_PIN_8, 1);

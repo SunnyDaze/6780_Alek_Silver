@@ -9,7 +9,7 @@
  *  -------------------------------------------------------------------------------------------------------------
  */
 
-volatile int16_t error_integral;    // Integrated error signal
+volatile int16_t error_integral = 0;    // Integrated error signal
 volatile uint8_t duty_cycle;        // Output PWM duty cycle
 volatile int16_t target_rpm;        // Desired speed target
 volatile int16_t motor_speed;       // Measured motor speed in pulses/period
@@ -26,8 +26,8 @@ static uint8_t buf1[1024];
 static uint8_t buf2[1024];
 static uint8_t buf3[1024];
 
-#define integral_size 300
-volatile uint16_t integral_values[integral_size] = {};
+#define integral_size 3200
+volatile uint32_t dt = 0.0375;                // TIM6 interval in seconds
 
 union byte_split {
     uint32_t uword;
@@ -238,28 +238,20 @@ void PI_update(void) {
     // sec/period = Ttarget = ((PSC -1)/fCLK) * ARR  // PSC = 11, ARR = 30000
     //
     // pulses/rev = motor_speed
+
+    Kp = 35;  // 100 = oscillating, 40 = overshoot, 30 = fast, 20 = slow, 10 = unresponsive in small changes
+    Ki = 5000;
     
     // motor_rpm = 
     target_speed = (target_rpm * 2.2222);
-    motor_rpm = motor_speed/2.222;
+    motor_rpm = motor_speed/2.2222;
     error = (target_rpm - motor_rpm);       // error in rpm
     // error = motor_speed - target_speed;  // error in pulses/period
 
-
     /// TODO: Calculate integral portion of PI controller, write to "error_integral" variable
 
-    // // Shift all elements left by one position
-    // // memmove(destination, source, number_of_bytes)
-    // memmove(integral_values, integral_values + 1, (integral_size - 1) * sizeof(uint16_t));
-
-    // // Insert the new value at the end
-    // integral_values[integral_size - 1] = error;
-
-    error_integral = 0;
-
-    // for (uint16_t i = 0; i < sizeof(integral_values); i++) {
-    //     error_integral += integral_values[i];
-    // }
+    // Accumulate error * time step
+    error_integral += error * dt;
 
     /// TODO: Clamp the value of the integral to a limited positive range
 
@@ -269,10 +261,11 @@ void PI_update(void) {
      *       Recommend that you clamp between 0 and 3200 (what is used in the lab solution)
      */
 
-    /// TODO: Calculate proportional portion, add integral and write to "output" variable
+    // Anti-windup code
+    if (error_integral > 3000) error_integral = 3000;
+    if (error_integral < 0) error_integral = 0;
 
-    Kp = 35;  // 100 = oscillating, 40 = overshoot, 30 = fast, 20 = slow, 10 = unresponsive in small changes
-    Ki = 2;
+    /// TODO: Calculate proportional portion, add integral and write to "output" variable
 
     // int16_t output = 0; // Change this!
     // output = 80; // Change this!
@@ -297,7 +290,7 @@ void PI_update(void) {
 
      /// TODO: Divide the output into the proper range for output adjustment
 
-    //  output = output;
+    //  output = output / 200;
 
      /// TODO: Clamp the output value between 0 and 100
    
