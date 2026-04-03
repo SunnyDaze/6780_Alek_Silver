@@ -4,6 +4,20 @@
     // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
     "configurations": [
+        // {
+        //     "type": "stlinkgdbtarget",
+        //     "request": "launch",
+        //     "name": "STM32Cube: Launch ST-Link GDB Server",
+        //     "origin": "snippet",
+        //     "cwd": "${workspaceFolder}",
+        //     "preBuild": "${command:st-stm32-ide-debug-launch.build}",
+        //     "runEntry": "main",
+        //     "imagesAndSymbols": [
+        //         {
+        //             "imageFileName": "${command:st-stm32-ide-debug-launch.get-projects-binary-from-context1}"
+        //         }
+        //     ]
+        // },
         {
             "type": "stlinkgdbtarget",
             "request": "launch",
@@ -14,26 +28,23 @@
             "runEntry": "main",
             "imagesAndSymbols": [
                 {
-                    // "imageFileName": "${command:cmake.launchTargetPath}"
-                    "imageFileName": "/home/alek/Nextcloud/EpikFam/Documents/UofUDocuments/ECE_6780_Embedded_System_Design/Labs/Lab 01/6780_Alek_Silver/build/lab7/lab7.elf"
+                    "imageFileName": "${command:cmake.launchTargetPath}"
                 }
             ]
         },
         {
             "cwd": "${workspaceRoot}",
-            // "executable": "${command:cmake.launchTargetPath}",
-            "executable": "/home/alek/Nextcloud/EpikFam/Documents/UofUDocuments/ECE_6780_Embedded_System_Design/Labs/Lab 01/6780_Alek_Silver/build/lab7/lab7.elf",
+            "executable": "${command:cmake.launchTargetPath}",
             "name": "RTT graphing",
             "request": "launch",
             "type": "cortex-debug",
-            "openOCDLaunchCommands": [],
             "servertype": "openocd",
             "configFiles": [
                 "board/stm32f0discovery.cfg"
             ],
             "runToEntryPoint": "main",
-            "showDevDebugOutput": "raw",
-            "svdPath": "${workspaceRoot}/STM32F0x2.svd",
+            "showDevDebugOutput": "none",
+            "svdPath": "STM32F072x.svd",
             "rttConfig": {
                 "enabled": true,
                 "address": "auto",
@@ -55,30 +66,26 @@
                         "scale": 1
                     },
                     {
-                        "label": "motor_rpm",
+                        "label": "motor_speed",
                         "port": 2,
                         "type": "graph",
                         "encoding": "signed",
                         "graphId": "3",
                         "scale": 1
-                    },
-                    {
-                        "label": "target_speed",
-                        "port": 3,
-                        "type": "graph",
-                        "encoding": "signed",
-                        "graphId": "4",
-                        "scale": 1
                     }
                 ]
+            },
+            "preLaunchTask": {
+                "type": "PlatformIO",
+                "task": "Pre-Debug (lab1)"
             },
             "graphConfig": [
                 {
                     "label": "Graph 1",
-                    "timespan": 1,
+                    "timespan": 5,
                     "type": "realtime",
                     "annotate": false,
-                    "maximum": 110,
+                    "maximum": 256,
                     "minimum": 0,
                     "plots": [
                         {
@@ -93,13 +100,8 @@
                         },
                         {
                             "graphId": "3",
-                            "label": "motor_rpm",
+                            "label": "motor_speed",
                             "color": "#B57EDC"
-                        },
-                        {
-                            "graphId": "4",
-                            "label": "target_speed",
-                            "color": "#DDDDDD"
                         }
                     ]
                 }
