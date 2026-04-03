@@ -55,11 +55,19 @@
                         "scale": 1
                     },
                     {
-                        "label": "motor_speed",
+                        "label": "motor_rpm",
                         "port": 2,
                         "type": "graph",
                         "encoding": "signed",
                         "graphId": "3",
+                        "scale": 1
+                    },
+                    {
+                        "label": "target_speed",
+                        "port": 3,
+                        "type": "graph",
+                        "encoding": "signed",
+                        "graphId": "4",
                         "scale": 1
                     }
                 ]
@@ -85,8 +93,13 @@
                         },
                         {
                             "graphId": "3",
-                            "label": "motor_speed",
+                            "label": "motor_rpm",
                             "color": "#B57EDC"
+                        },
+                        {
+                            "graphId": "4",
+                            "label": "target_speed",
+                            "color": "#DDDDDD"
                         }
                     ]
                 }

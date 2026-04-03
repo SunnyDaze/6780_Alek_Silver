@@ -1,3 +1,4 @@
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stm32f0xx.h>
@@ -9,30 +10,38 @@
  */
 
 volatile int16_t error_integral;    // Integrated error signal
-volatile uint8_t duty_cycle;    // Output PWM duty cycle
-volatile int16_t target_rpm;    // Desired speed target
-volatile int16_t motor_speed;   // Measured motor speed
-volatile int8_t adc_value;      // ADC measured motor current
-volatile int16_t error;         // Speed error signal
-volatile uint8_t Kp;            // Proportional gain
-volatile uint8_t Ki;            // Integral gain
+volatile uint8_t duty_cycle;        // Output PWM duty cycle
+volatile int16_t target_rpm;        // Desired speed target
+volatile int16_t motor_speed;       // Measured motor speed in pulses/period
+volatile int16_t motor_rpm;         // Measured motor rpm
+volatile int8_t adc_value;          // ADC measured motor current
+volatile int16_t error;             // Speed error signal
+volatile uint8_t Kp;                // Proportional gain
+volatile uint8_t Ki;                // Integral gain
 volatile uint32_t output;
+volatile uint32_t target_speed;     // target pules/period
 
 static uint8_t buf0[1024];
 static uint8_t buf1[1024];
 static uint8_t buf2[1024];
+static uint8_t buf3[1024];
 
+#define integral_size 300
+volatile uint16_t integral_values[integral_size] = {};
 
 union byte_split {
     uint32_t uword;
     int32_t word;
     uint8_t bytes[4];
+    uint32_t target;
 };
 
 void log_init(void) {
     SEGGER_RTT_ConfigUpBuffer(0, "", buf0, 1024, SEGGER_RTT_MODE_NO_BLOCK_SKIP);
     SEGGER_RTT_ConfigUpBuffer(1, "", buf1, 1024, SEGGER_RTT_MODE_NO_BLOCK_SKIP);
     SEGGER_RTT_ConfigUpBuffer(2, "", buf2, 1024, SEGGER_RTT_MODE_NO_BLOCK_SKIP);
+    SEGGER_RTT_ConfigUpBuffer(2, "", buf3, 1024, SEGGER_RTT_MODE_NO_BLOCK_SKIP);
+
 }
 
 void log_data(void) {
@@ -41,6 +50,9 @@ void log_data(void) {
     uint32_t duty_cycle_copy = duty_cycle;
     int32_t target_rpm_copy = target_rpm;
     int32_t motor_speed_copy = motor_speed;
+    int32_t motor_rpm_copy = motor_rpm;
+    int32_t target_speed_copy = target_speed;
+
     // End critical section
     __enable_irq();
 
@@ -49,8 +61,12 @@ void log_data(void) {
     SEGGER_RTT_Write (0, &data.bytes, 4);
     data.word = target_rpm_copy;
     SEGGER_RTT_Write (1, &data.bytes, 4);
-    data.word = motor_speed_copy;
+    data.word = motor_rpm_copy;
     SEGGER_RTT_Write (2, &data.bytes, 4);
+    // data.word = motor_speed_copy;
+    // SEGGER_RTT_Write (2, &data.bytes, 4);
+    data.word = target_speed_copy;
+    SEGGER_RTT_Write (3, &data.bytes, 4);
 }
 // Sets up the entire motor drive system
 void motor_init(void) {
@@ -83,8 +99,8 @@ void pwm_init(void) {
 
     //Initialize one direction pin to high, the other low
     GPIOA->ODR |= (1 << 5);
-    GPIOA->ODR &= ~(1 << 6);
-    GPIOA->ODR &= ~(1 << 7);
+    // GPIOA->ODR &= ~(1 << 6);
+    GPIOA->ODR &= ~(1 << 8);
 
     // Set up PWM timer
     RCC->APB1ENR |= RCC_APB1ENR_TIM14EN;
@@ -161,6 +177,7 @@ void TIM6_DAC_IRQHandler(void) {
 
     // Call the PI update function
     PI_update();
+    log_data();
 
     TIM6->SR &= ~TIM_SR_UIF;        // Acknowledge the interrupt
 }
@@ -212,10 +229,38 @@ void PI_update(void) {
      *       more resolution.
      */
 
-     error = target_rpm - motor_speed;
+    // error = target_rpm * C - actual_pulses_per_second;     // in pulses per period
+    //
+    //     rev    min      sec      pulses
+    // C = --- * ----- *  ------ * -------- = 2 pulses per period // pules/rev
+    //     min   60sec    period    rev
+    //
+    // sec/period = Ttarget = ((PSC -1)/fCLK) * ARR  // PSC = 11, ARR = 30000
+    //
+    // pulses/rev = motor_speed
+    
+    // motor_rpm = 
+    target_speed = (target_rpm * 2.2222);
+    motor_rpm = motor_speed/2.222;
+    // error = (target_rpm - motor_rpm);       // error in rpm
+    error = (motor_rpm - target_rpm);        // error in rpm
+    // error = motor_speed - target_speed;  // error in pulses/period
 
 
     /// TODO: Calculate integral portion of PI controller, write to "error_integral" variable
+
+    // // Shift all elements left by one position
+    // // memmove(destination, source, number_of_bytes)
+    // memmove(integral_values, integral_values + 1, (integral_size - 1) * sizeof(uint16_t));
+
+    // // Insert the new value at the end
+    // integral_values[integral_size - 1] = error;
+
+    error_integral = 0;
+
+    // for (uint16_t i = 0; i < sizeof(integral_values); i++) {
+    //     error_integral += integral_values[i];
+    // }
 
     /// TODO: Clamp the value of the integral to a limited positive range
 
@@ -227,9 +272,13 @@ void PI_update(void) {
 
     /// TODO: Calculate proportional portion, add integral and write to "output" variable
 
+    Kp = 1;
+    Ki = 2;
+
     // int16_t output = 0; // Change this!
     // output = 80; // Change this!
-    output = target_rpm;
+    output = (int)(Kp*error + Ki*error_integral);
+
 
     /* Because the calculated values for the PI controller are significantly larger than
      * the allowable range for duty cycle, you'll need to divide the result down into
@@ -250,11 +299,11 @@ void PI_update(void) {
      /// TODO: Divide the output into the proper range for output adjustment
 
      /// TODO: Clamp the output value between 0 and 100
+   
+     if (output >= 100){output = 100;}
 
     pwm_setDutyCycle(output);
     duty_cycle = output;            // For debug viewing
-
-    log_data();
 
     // Read the ADC value for current monitoring, actual conversion into meaningful units
     // will be performed by STMStudio

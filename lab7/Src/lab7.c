@@ -89,25 +89,10 @@ int main(void) {
     button_init();                          // Initialize button
     motor_init();                           // Initialize motor code
 
-    // uint32_t ticks = 6000;
-
-    // NVIC_SetPriority(SysTick_IRQn, 0);
-    // SysTick->LOAD = (ticks & SysTick_LOAD_RELOAD_Msk) - 1;
-
-    // SysTick->VAL = 0;
-
-    // // Enable SysTick: 
-    // // 1. Select processor clock (HCLK)
-    // // 2. Enable interrupt on reload (TICKINT)
-    // // 3. Enable the counter
-    // SysTick->CTRL = SysTick_CTRL_CLKSOURCE_Msk | 
-    //                 SysTick_CTRL_TICKINT_Msk | 
-    //                 SysTick_CTRL_ENABLE_Msk;
-
     target_rpm = 100;
     // // Set up a PA5, PA6 as GPIO output pins for motor direction control
-    HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, 1);
-    HAL_GPIO_WritePin(GPIOA, GPIO_PIN_8, 0);
+    HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, 0);
+    HAL_GPIO_WritePin(GPIOA, GPIO_PIN_8, 1);
 
     while (1) {
         GPIOC->ODR ^= GPIO_ODR_9;           // Toggle green LED (heartbea)t)

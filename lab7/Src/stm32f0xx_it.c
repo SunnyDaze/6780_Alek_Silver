@@ -55,12 +55,12 @@ void SysTick_Handler(void)
   /* USER CODE BEGIN SystickIRQn 0 */
   HAL_IncTick();
   // HAL_SYSTICK_IRQHandler();
-    // Explicitly call your custom function
+  // Explicitly call your custom function
   Lab7_Systick_Callback();
-  #if defined(LAB7)
-  // Lab7_SysTick_Handler();
-  Lab7_SysTick_Callback();
-  #endif
+  // #if defined(LAB7)
+  // // Lab7_SysTick_Handler();
+  // Lab7_SysTick_Callback();
+  // #endif
   /* USER CODE END SystickIRQn 0 */
   /* USER CODE BEGIN SystickIRQn 1 */
   /* USER CODE END SystickIRQn 1 */
