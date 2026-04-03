@@ -242,8 +242,7 @@ void PI_update(void) {
     // motor_rpm = 
     target_speed = (target_rpm * 2.2222);
     motor_rpm = motor_speed/2.222;
-    // error = (target_rpm - motor_rpm);       // error in rpm
-    error = (motor_rpm - target_rpm);        // error in rpm
+    error = (target_rpm - motor_rpm);       // error in rpm
     // error = motor_speed - target_speed;  // error in pulses/period
 
 
@@ -272,12 +271,12 @@ void PI_update(void) {
 
     /// TODO: Calculate proportional portion, add integral and write to "output" variable
 
-    Kp = 1;
+    Kp = 35;  // 100 = oscillating, 40 = overshoot, 30 = fast, 20 = slow, 10 = unresponsive in small changes
     Ki = 2;
 
     // int16_t output = 0; // Change this!
     // output = 80; // Change this!
-    output = (int)(Kp*error + Ki*error_integral);
+    output = output + (int)(Kp*error + Ki*error_integral)/200;   // divide by 200 for rpms
 
 
     /* Because the calculated values for the PI controller are significantly larger than
@@ -297,6 +296,8 @@ void PI_update(void) {
      */
 
      /// TODO: Divide the output into the proper range for output adjustment
+
+    //  output = output;
 
      /// TODO: Clamp the output value between 0 and 100
    
